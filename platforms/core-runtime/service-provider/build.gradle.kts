@@ -1,0 +1,13 @@
+plugins {
+    id("gradlebuild.distribution.implementation-java")
+}
+
+description = "An API for providing internal services for Gradle modules"
+
+gradlebuildJava.usedInWorkers()
+
+dependencies {
+    api(projects.stdlibJavaExtensions)
+
+    api(libs.errorProneAnnotations)
+}

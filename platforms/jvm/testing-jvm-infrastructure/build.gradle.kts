@@ -27,10 +27,11 @@ various implementations of WorkerTestClassProcessorFactory.
 """
 
 dependencies {
-    api(projects.javaLanguageExtensions)
+    api(projects.stdlibJavaExtensions)
+    api(projects.time)
     api(project(":base-services"))
     api(project(":messaging"))
-    api(project(":testing-base"))
+    api(project(":testing-base-infrastructure"))
 
     api(libs.jsr305)
     api(libs.junit)
@@ -48,7 +49,6 @@ dependencies {
 
     implementation(projects.concurrent)
 
-    implementation(libs.commonsLang)
     implementation(libs.slf4jApi)
 
     testImplementation(testFixtures(project(":core")))

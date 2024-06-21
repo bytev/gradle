@@ -38,7 +38,6 @@ errorprone {
         "StreamResourceLeak", // 1 occurrences
         "StringCaseLocaleUsage", // 3 occurrences
         "StringCharset", // 1 occurrences
-        "StringSplitter", // 4 occurrences
         "TypeParameterShadowing", // 4 occurrences
         "TypeParameterUnusedInFormals", // 2 occurrences
         "UndefinedEquals", // 1 occurrences
@@ -51,7 +50,9 @@ errorprone {
 
 dependencies {
     api(projects.concurrent)
-    api(projects.javaLanguageExtensions)
+    api(projects.stdlibJavaExtensions)
+    api(projects.serialization)
+    api(projects.serviceProvider)
     api(project(":base-services"))
     api(project(":build-operations"))
     api(project(":build-option"))
@@ -73,6 +74,7 @@ dependencies {
     api(project(":resources"))
     api(project(":security"))
     api(project(":snapshots"))
+    api(project(":build-process-services"))
 
     api(libs.bouncycastlePgp)
     api(libs.groovy)
@@ -84,6 +86,7 @@ dependencies {
     api(libs.maven3SettingsBuilder)
     api(libs.slf4jApi)
 
+    implementation(projects.time)
     implementation(project(":base-services-groovy"))
     implementation(project(":logging-api"))
     implementation(project(":resources-http"))
@@ -104,6 +107,7 @@ dependencies {
     testImplementation(libs.commonsHttpclient)
     testImplementation(libs.groovyXml)
     testImplementation(libs.jsoup)
+    testImplementation(testFixtures(projects.serialization))
     testImplementation(testFixtures(project(":base-services")))
     testImplementation(testFixtures(project(":core")))
     testImplementation(testFixtures(project(":core-api")))

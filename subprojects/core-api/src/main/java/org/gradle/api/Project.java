@@ -41,6 +41,7 @@ import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.api.plugins.ExtensionContainer;
 import org.gradle.api.plugins.PluginAware;
+import org.gradle.api.project.IsolatedProject;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.resources.ResourceHandler;
@@ -48,6 +49,7 @@ import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.WorkResult;
 import org.gradle.internal.HasInternalProtocol;
 import org.gradle.internal.accesscontrol.ForExternalUse;
+import org.gradle.internal.instrumentation.api.annotations.NotToBeMigratedToLazy;
 import org.gradle.normalization.InputNormalizationHandler;
 import org.gradle.process.ExecResult;
 import org.gradle.process.ExecSpec;
@@ -118,7 +120,7 @@ import java.util.concurrent.Callable;
  * Plugins can be applied using the {@link PluginAware#apply(java.util.Map)} method, or by using the {@link org.gradle.plugin.use.PluginDependenciesSpec} plugins script block.
  * </p>
  *
- * <a name="properties"></a> <h3>Dynamic Project Properties</h3>
+ * <a id="properties"></a> <h3>Dynamic Project Properties</h3>
  *
  * <p>Gradle executes the project's build file against the <code>Project</code> instance to configure the project. Any
  * property or method which your script uses is delegated through to the associated <code>Project</code> object.  This
@@ -166,7 +168,7 @@ import java.util.concurrent.Callable;
  * <p>When writing a property, the project searches the above scopes in order, and sets the property in the first scope
  * it finds the property in. If not found, an exception is thrown. See {@link #setProperty(String, Object)} for more details.</p>
  *
- * <a name="extraproperties"></a> <h4>Extra Properties</h4>
+ * <a id="extraproperties"></a> <h4>Extra Properties</h4>
  *
  * All extra properties must be defined through the &quot;ext&quot; namespace. Once an extra property has been defined,
  * it is available directly on the owning object (in the below case the Project, Task, and sub-projects respectively) and can
@@ -218,6 +220,7 @@ import java.util.concurrent.Callable;
  * </ul>
  */
 @HasInternalProtocol
+@NotToBeMigratedToLazy
 public interface Project extends Comparable<Project>, ExtensionAware, PluginAware {
     /**
      * The default project build file name.

@@ -110,6 +110,7 @@ fun BaseGradleBuildType.gradleRunnerStep(
     model: CIBuildModel,
     gradleTasks: String,
     os: Os = Os.LINUX,
+    arch: Arch = Arch.AMD64,
     extraParameters: String = "",
     daemon: Boolean = true,
     maxParallelForks: String = "%maxParallelForks%",
@@ -124,7 +125,7 @@ fun BaseGradleBuildType.gradleRunnerStep(
         buildToolGradleParameters(daemon, maxParallelForks = maxParallelForks) +
             listOf(extraParameters) +
             buildScanTags.map { buildScanTag(it) } +
-            functionalTestParameters(os)
+            functionalTestParameters(os, arch)
         ).joinToString(separator = " ")
 
     steps {
@@ -146,6 +147,7 @@ fun applyDefaults(
     gradleTasks: String,
     dependsOnQuickFeedbackLinux: Boolean = false,
     os: Os = Os.LINUX,
+    arch: Arch = Arch.AMD64,
     extraParameters: String = "",
     timeout: Int = 90,
     daemon: Boolean = true,
@@ -155,10 +157,11 @@ fun applyDefaults(
     buildType.applyDefaultSettings(os, timeout = timeout, buildJvm = buildJvm)
 
     buildType.killProcessStep(KILL_LEAKED_PROCESSES_FROM_PREVIOUS_BUILDS, os)
-    buildType.gradleRunnerStep(model, gradleTasks, os, extraParameters, daemon)
+    buildType.gradleRunnerStep(model, gradleTasks, os, arch, extraParameters, daemon)
 
     buildType.steps {
         extraSteps()
+        killProcessStep(buildType, KILL_PROCESSES_STARTED_BY_GRADLE, os, arch, executionMode = ExecutionMode.ALWAYS)
         checkCleanM2AndAndroidUserHome(os, buildType)
     }
 
@@ -176,7 +179,7 @@ private fun BaseGradleBuildType.addRetrySteps(
 ) {
     killProcessStep(KILL_ALL_GRADLE_PROCESSES, os, arch, executionMode = ExecutionMode.RUN_ONLY_ON_FAILURE)
     cleanUpGitUntrackedFilesAndDirectories()
-    gradleRunnerStep(model, gradleTasks, os, extraParameters, daemon, maxParallelForks = maxParallelForks, isRetry = true)
+    gradleRunnerStep(model, gradleTasks, os, arch, extraParameters, daemon, maxParallelForks = maxParallelForks, isRetry = true)
 }
 
 fun applyTestDefaults(
@@ -201,9 +204,9 @@ fun applyTestDefaults(
     }
 
     buildType.killProcessStep(KILL_LEAKED_PROCESSES_FROM_PREVIOUS_BUILDS, os, arch)
-    buildType.gradleRunnerStep(model, gradleTasks, os, extraParameters, daemon, maxParallelForks = maxParallelForks)
+    buildType.gradleRunnerStep(model, gradleTasks, os, arch, extraParameters, daemon, maxParallelForks = maxParallelForks)
     buildType.addRetrySteps(model, gradleTasks, os, arch, extraParameters)
-    buildType.killProcessStep(KILL_PROCESSES_STARTED_BY_GRADLE, os, arch)
+    buildType.killProcessStep(KILL_PROCESSES_STARTED_BY_GRADLE, os, arch, executionMode = ExecutionMode.ALWAYS)
 
     buildType.steps {
         extraSteps()

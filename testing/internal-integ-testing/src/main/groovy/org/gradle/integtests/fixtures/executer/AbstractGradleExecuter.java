@@ -36,8 +36,10 @@ import org.gradle.integtests.fixtures.validation.ValidationServicesFixture;
 import org.gradle.internal.ImmutableActionSet;
 import org.gradle.internal.MutableActionSet;
 import org.gradle.internal.UncheckedException;
-import org.gradle.internal.agents.AgentStatus;
+import org.gradle.internal.buildprocess.BuildProcessState;
+import org.gradle.internal.classpath.ClassPath;
 import org.gradle.internal.featurelifecycle.LoggingDeprecatedFeatureHandler;
+import org.gradle.internal.instrumentation.agent.AgentStatus;
 import org.gradle.internal.jvm.JavaHomeException;
 import org.gradle.internal.jvm.Jvm;
 import org.gradle.internal.jvm.inspection.JvmVersionDetector;
@@ -46,12 +48,10 @@ import org.gradle.internal.logging.services.DefaultLoggingManagerFactory;
 import org.gradle.internal.logging.services.LoggingServiceRegistry;
 import org.gradle.internal.nativeintegration.console.TestOverrideConsoleDetector;
 import org.gradle.internal.nativeintegration.services.NativeServices;
+import org.gradle.internal.scripts.ScriptFileUtil;
 import org.gradle.internal.service.ServiceRegistry;
-import org.gradle.internal.service.ServiceRegistryBuilder;
-import org.gradle.internal.service.scopes.GlobalScopeServices;
-import org.gradle.internal.service.scopes.Scope;
-import org.gradle.jvm.toolchain.internal.AutoDetectingInstallationSupplier;
-import org.gradle.launcher.cli.DefaultCommandLineActionFactory;
+import org.gradle.jvm.toolchain.internal.ToolchainConfiguration;
+import org.gradle.launcher.cli.WelcomeMessageAction;
 import org.gradle.launcher.daemon.configuration.DaemonBuildOptions;
 import org.gradle.process.internal.streams.SafeStreams;
 import org.gradle.test.fixtures.ResettableExpectations;
@@ -105,14 +105,14 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
     private static final String PROFILE_SYSPROP = "org.gradle.integtest.profile";
     private static final String ALLOW_INSTRUMENTATION_AGENT_SYSPROP = "org.gradle.integtest.agent.allowed";
 
-    protected static final ServiceRegistry GLOBAL_SERVICES = ServiceRegistryBuilder.builder()
-        .scope(Scope.Global.class)
-        .displayName("Global services")
-        .parent(newCommandLineProcessLogging())
-        .parent(NativeServicesTestFixture.getInstance())
-        .parent(ValidationServicesFixture.getServices())
-        .provider(new GlobalScopeServices(true, AgentStatus.of(isAgentInstrumentationEnabled())))
-        .build();
+    protected static final ServiceRegistry GLOBAL_SERVICES = new BuildProcessState(
+        true,
+        AgentStatus.of(isAgentInstrumentationEnabled()),
+        ClassPath.EMPTY,
+        newCommandLineProcessLogging(),
+        NativeServicesTestFixture.getInstance(),
+        ValidationServicesFixture.getServices()
+    ).getServices();
 
     private static final JvmVersionDetector JVM_VERSION_DETECTOR = GLOBAL_SERVICES.get(JvmVersionDetector.class);
 
@@ -469,7 +469,9 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
 
     @Override
     public GradleExecuter usingInitScript(File initScript) {
-        initScripts.add(initScript);
+        if (RepoScriptBlockUtil.isMirrorEnabled()) {
+            initScripts.add(initScript);
+        }
         return this;
     }
 
@@ -566,6 +568,9 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
             gradleInvocation.implicitLauncherJvmArgs.add(String.format("-D%s=%s", key, value));
         }
         if (isDebugLauncher()) {
+            if (System.getenv().containsKey("CI")) {
+                throw new IllegalArgumentException("Builds cannot be started with the debugger enabled on CI. This will cause tests to hang forever. Remove the call to startLauncherInDebugger().");
+            }
             gradleInvocation.implicitLauncherJvmArgs.add(debugLauncher.toDebugArgument());
         }
         gradleInvocation.implicitLauncherJvmArgs.add("-ea");
@@ -641,9 +646,9 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
         return this;
     }
 
-    private JavaVersion getJavaVersionFromJavaHome() {
+    protected final JavaVersion getJavaVersionFromJavaHome() {
         try {
-            return JVM_VERSION_DETECTOR.getJavaVersion(Jvm.forHome(getJavaHomeLocation()));
+            return JavaVersion.toVersion(JVM_VERSION_DETECTOR.getJavaVersionMajor(Jvm.forHome(getJavaHomeLocation())));
         } catch (IllegalArgumentException | JavaHomeException e) {
             return JavaVersion.current();
         }
@@ -1090,7 +1095,7 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
             allArgs.add("-Porg.gradle.java.installations.auto-download=false");
         }
         if (disableToolchainDetection) {
-            allArgs.add("-P" + AutoDetectingInstallationSupplier.AUTO_DETECT + "=false");
+            allArgs.add("-P" + ToolchainConfiguration.AUTO_DETECT + "=false");
         }
 
         boolean hasAgentArgument = args.stream().anyMatch(s -> s.contains(DaemonBuildOptions.ApplyInstrumentationAgentOption.GRADLE_PROPERTY));
@@ -1121,9 +1126,14 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
         workingDir.createFile("settings.gradle");
     }
 
-    private boolean hasSettingsFile(TestFile dir) {
+    private static boolean hasSettingsFile(TestFile dir) {
         if (dir.isDirectory()) {
-            return dir.file("settings.gradle").isFile() || dir.file("settings.gradle.kts").isFile() || dir.file("settings.gradle.something").isFile();
+            String[] settingsFileNames = ScriptFileUtil.getValidSettingsFileNames();
+            for (String settingsFileName : settingsFileNames) {
+                if (dir.file(settingsFileName).isFile()) {
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -1186,7 +1196,7 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
             properties.put(TestOverrideConsoleDetector.INTERACTIVE_TOGGLE, "true");
         }
 
-        properties.put(DefaultCommandLineActionFactory.WELCOME_MESSAGE_ENABLED_SYSTEM_PROPERTY, Boolean.toString(renderWelcomeMessage));
+        properties.put(WelcomeMessageAction.WELCOME_MESSAGE_ENABLED_SYSTEM_PROPERTY, Boolean.toString(renderWelcomeMessage));
 
         // Having this unset is now deprecated, will default to `false` in Gradle 9.0
         // TODO remove - see https://github.com/gradle/gradle/issues/26810
@@ -1405,6 +1415,7 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
         return this;
     }
 
+    @Override
     public GradleExecuter startLauncherInDebugger(Action<JavaDebugOptionsInternal> action) {
         debugLauncher.setEnabled(true);
         action.execute(debugLauncher);
@@ -1545,8 +1556,8 @@ public abstract class AbstractGradleExecuter implements GradleExecuter, Resettab
         return durationMeasurement;
     }
 
-    private static LoggingServiceRegistry newCommandLineProcessLogging() {
-        LoggingServiceRegistry loggingServices = LoggingServiceRegistry.newEmbeddableLogging();
+    private static ServiceRegistry newCommandLineProcessLogging() {
+        ServiceRegistry loggingServices = LoggingServiceRegistry.newEmbeddableLogging();
         LoggingManagerInternal rootLoggingManager = loggingServices.get(DefaultLoggingManagerFactory.class).getRoot();
         rootLoggingManager.attachSystemOutAndErr();
         return loggingServices;

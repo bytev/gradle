@@ -58,11 +58,26 @@ class ServiceScopeValidator implements AnnotatedServiceLifecycleHandler {
     }
 
     @Override
+    public Class<? extends Annotation> getImplicitAnnotation() {
+        return ServiceScope.class;
+    }
+
+    @Override
     public void whenRegistered(Class<? extends Annotation> annotation, Registration registration) {
-        validateScope(registration.getDeclaredType());
+        for (Class<?> declaredType : registration.getDeclaredTypes()) {
+            validateScope(declaredType);
+        }
     }
 
     private void validateScope(Class<?> serviceType) {
+        if (ServiceScopeValidator.class.isAssignableFrom(serviceType)) {
+            return;
+        }
+
+        if (ServiceScopeValidatorWorkarounds.shouldSuppressValidation(serviceType)) {
+            return;
+        }
+
         Class<? extends Scope>[] serviceScopes = scopeOf(serviceType);
 
         if (serviceScopes == null) {
@@ -87,6 +102,7 @@ class ServiceScopeValidator implements AnnotatedServiceLifecycleHandler {
             throw new IllegalArgumentException(missingScopeMessage(serviceType));
         }
 
+        // TODO(alllex): let the registration explicitly provide the Class of the implementation
         Class<?> inferredServiceType = annotatedSupertypes.iterator().next();
         throw new IllegalArgumentException(implementationWithMissingScopeMessage(inferredServiceType, serviceType));
     }

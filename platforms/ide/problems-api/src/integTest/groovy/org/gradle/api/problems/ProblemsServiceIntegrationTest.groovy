@@ -271,7 +271,9 @@ class ProblemsServiceIntegrationTest extends AbstractIntegrationSpec {
         withReportProblemTask """
             problems.forNamespace('org.example.plugin').reporting {
                 it.id('type', 'label')
-                .additionalData('key', 'value')
+                .additionalData(org.gradle.api.problems.internal.GeneralDataSpec) {
+                    it.put('key','value')
+                }
             }
         """
 
@@ -279,15 +281,37 @@ class ProblemsServiceIntegrationTest extends AbstractIntegrationSpec {
         run('reportProblem')
 
         then:
-        receivedProblem.additionalData == ['key': 'value']
+        receivedProblem.additionalData.asMap == ['key': 'value']
     }
 
-    def "cannot emit a problem with invalid additional data"() {
+    def "cannot set addtional data with different type"() {
         given:
         withReportProblemTask """
             problems.forNamespace('org.example.plugin').reporting {
                 it.id('type', 'label')
-                .additionalData("key", ["collections", "are", "not", "supported", "yet"])
+                .additionalData(org.gradle.api.problems.internal.GeneralDataSpec) {
+                    it.put('key','value')
+                }
+                .additionalData(org.gradle.api.problems.internal.DeprecationDataSpec) {
+                    it.put('key2','value2')
+                }
+            }
+        """
+
+        when:
+        run('reportProblem')
+
+        then:
+        thrown(RuntimeException)
+    }
+
+    def "cannot emit a problem with invalid additional data"() {
+        given:
+        buildScript 'class InvalidData implements org.gradle.api.problems.internal.AdditionalData {}'
+        withReportProblemTask """
+            problems.forNamespace('org.example.plugin').reporting {
+                it.id('type', 'label')
+                .additionalData(InvalidData) {}
             }
         """
 
@@ -296,8 +320,8 @@ class ProblemsServiceIntegrationTest extends AbstractIntegrationSpec {
 
         then:
         verifyAll(receivedProblem) {
-            definition.id.fqid == 'problems-api:invalid-additional-data'
-            definition.id.displayName == 'ProblemBuilder.additionalData() only supports values of type String'
+            definition.id.fqid == 'problems-api:unsupported-additional-data'
+            definition.id.displayName == 'Unsupported additional data type'
             with(oneLocation(LineInFileLocation)) {
                 length == -1
                 column == -1

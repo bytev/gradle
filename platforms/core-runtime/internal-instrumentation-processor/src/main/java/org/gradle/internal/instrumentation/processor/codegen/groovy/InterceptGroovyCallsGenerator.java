@@ -78,6 +78,7 @@ public class InterceptGroovyCallsGenerator extends RequestGroupingInstrumentatio
             .addTypes(interceptorTypeSpecs);
     }
 
+    @SuppressWarnings("ReturnValueIgnored")
     private static List<TypeSpec> generateInterceptorClasses(Collection<CallInterceptionRequest> interceptionRequests, Consumer<? super HasFailures.FailureInfo> onFailure) {
         List<TypeSpec> result = new ArrayList<>(interceptionRequests.size() / 2);
 
@@ -175,6 +176,7 @@ public class InterceptGroovyCallsGenerator extends RequestGroupingInstrumentatio
         return requests.stream().anyMatch(it -> it.getInterceptedCallable().getKind() == GROOVY_PROPERTY_GETTER || it.getInterceptedCallable().getKind() == GROOVY_PROPERTY_SETTER);
     }
 
+    @SuppressWarnings("ReturnValueIgnored")
     private static CodeBlock interceptorClassJavadoc(Collection<CallInterceptionRequest> requests) {
         List<CodeBlock> result = new ArrayList<>();
         result.add(CodeBlock.of("Intercepts the following declarations:<ul>"));
@@ -206,7 +208,7 @@ public class InterceptGroovyCallsGenerator extends RequestGroupingInstrumentatio
         });
 
         List<CallableKindInfo> callableKinds = requests.stream().map(it -> it.getInterceptedCallable().getKind()).distinct().collect(Collectors.toList());
-        if (callableKinds.contains(CallableKindInfo.STATIC_METHOD) | callableKinds.contains(CallableKindInfo.INSTANCE_METHOD)) {
+        if (callableKinds.contains(CallableKindInfo.STATIC_METHOD) || callableKinds.contains(CallableKindInfo.INSTANCE_METHOD)) {
             scopeExpressions.add(CodeBlock.of("$T.methodsNamed($S)", INTERCEPTED_SCOPE_CLASS, name));
         }
         return scopeExpressions.stream().distinct().collect(CodeBlock.joining(", "));
@@ -218,7 +220,7 @@ public class InterceptGroovyCallsGenerator extends RequestGroupingInstrumentatio
 
         new CodeGeneratingSignatureTreeVisitor(result).visit(tree, -1);
 
-        result.addStatement("return invocation.callOriginal()");
+        result.addStatement("return invocation.callNext()");
         return result.build();
     }
 

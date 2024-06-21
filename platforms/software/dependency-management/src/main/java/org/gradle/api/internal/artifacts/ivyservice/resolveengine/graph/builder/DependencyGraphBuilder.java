@@ -374,7 +374,7 @@ public class DependencyGraphBuilder {
         for (ModuleResolveState module : resolveState.getModules()) {
             ComponentState selected = module.getSelected();
             if (selected != null) {
-                ResolutionFailureHandler resolutionFailureHandler = resolveState.getVariantSelector().getFailureProcessor();
+                ResolutionFailureHandler resolutionFailureHandler = resolveState.getVariantSelector().getFailureHandler();
                 if (selected.isRejected()) {
                     GradleException error = new GradleException(selected.getRejectedErrorMessage());
                     attachFailureToEdges(error, module.getIncomingEdges());
@@ -398,9 +398,9 @@ public class DependencyGraphBuilder {
                 attachMultipleForceOnPlatformFailureToEdges(module);
             }
         }
-        List<EdgeState> incomingRootEdges = resolveState.getRoot().getIncomingEdges();
-        if (!incomingRootEdges.isEmpty()) {
-            String rootNodeName = resolveState.getRoot().getResolvedConfigurationId().getConfiguration();
+
+        if (resolveState.getRoot().wasIncomingEdgeAdded()) {
+            String rootNodeName = resolveState.getRoot().getMetadata().getName();
             DeprecationLogger.deprecate(
                     String.format(
                         "While resolving configuration '%s', it was also selected as a variant. Configurations should not act as both a resolution root and a variant simultaneously. " +

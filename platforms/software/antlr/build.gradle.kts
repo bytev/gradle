@@ -12,8 +12,7 @@ errorprone {
 }
 
 dependencies {
-    api(projects.javaLanguageExtensions)
-    api(project(":base-services"))
+    api(projects.stdlibJavaExtensions)
     api(project(":core"))
     api(project(":core-api"))
     api(project(":files"))
@@ -21,6 +20,8 @@ dependencies {
 
     api(libs.inject)
 
+    implementation(projects.internalInstrumentationApi)
+    implementation(project(":base-services"))
     implementation(project(":platform-jvm"))
     implementation(project(":plugins-java-base"))
     implementation(project(":plugins-java-library"))
@@ -34,7 +35,6 @@ dependencies {
     }
 
     runtimeOnly(project(":language-jvm"))
-    runtimeOnly(project(":plugins"))
     runtimeOnly(project(":workers"))
 
     testImplementation(project(":base-services-groovy"))

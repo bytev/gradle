@@ -464,6 +464,7 @@ class JavaToolchainBuildOperationsIntegrationTest extends AbstractIntegrationSpe
             executer.expectDocumentedDeprecationWarning(
                 "The AbstractCompile.destinationDir property has been deprecated. " +
                     "This is scheduled to be removed in Gradle 9.0. " +
+                    "Property was automatically upgraded to the lazy version. " +
                     "Please use the destinationDirectory property instead. " +
                     "Consult the upgrading guide for further information: https://docs.gradle.org/current/userguide/upgrading_version_7.html#compile_task_wiring")
             executer.expectDocumentedDeprecationWarning(
@@ -616,7 +617,7 @@ class JavaToolchainBuildOperationsIntegrationTest extends AbstractIntegrationSpe
     }
 
     def "ignores toolchain usages at configuration time"() {
-        JvmInstallationMetadata jdkMetadata = AvailableJavaHomes.getJvmInstallationMetadata(AvailableJavaHomes.differentJdk)
+        JvmInstallationMetadata jdkMetadata = AvailableJavaHomes.getJvmInstallationMetadata(AvailableJavaHomes.differentVersion)
         buildFile << """
             println(javaToolchains.launcherFor {
                 languageVersion = JavaLanguageVersion.of(${jdkMetadata.languageVersion.majorVersion})

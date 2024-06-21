@@ -18,14 +18,8 @@ plugins {
     id("gradlebuild.internal.java")
 }
 
-errorprone {
-    disabledChecks.addAll(
-        "ImmutableEnumChecker", // 1 occurrences
-    )
-}
-
 dependencies {
-    api(projects.javaLanguageExtensions)
+    api(projects.stdlibJavaExtensions)
 
     api(libs.asm)
     api(libs.asmTree)

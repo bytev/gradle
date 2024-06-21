@@ -28,6 +28,7 @@ import org.gradle.tooling.events.ProgressListener
 import org.gradle.tooling.events.problems.LineInFileLocation
 import org.gradle.tooling.events.problems.Severity
 import org.gradle.tooling.events.problems.SingleProblemEvent
+import org.gradle.tooling.events.problems.internal.GeneralData
 import org.gradle.util.GradleVersion
 import org.junit.Assume
 
@@ -90,6 +91,8 @@ class ProblemProgressEventCrossVersionTest extends ToolingApiSpecification {
             locations.size() == 2
             (locations[0] as LineInFileLocation).path == "build file '$buildFile.path'" // FIXME: the path should not contain a prefix nor extra quotes
             (locations[1] as LineInFileLocation).path == "build file '$buildFile.path'"
+            additionalData instanceof GeneralData
+            additionalData.asMap['type'] == 'USER_CODE_DIRECT'
         }
     }
 
@@ -101,7 +104,7 @@ class ProblemProgressEventCrossVersionTest extends ToolingApiSpecification {
                 $documentationConfig
                 .lineInFileLocation("/tmp/foo", 1, 2, 3)
                 $detailsConfig
-                .additionalData("aKey", "aValue")
+                .additionalData(org.gradle.api.problems.internal.GeneralDataSpec, data -> data.put("aKey", "aValue"))
                 .severity(Severity.WARNING)
                 .solution("try this instead")
             }
@@ -137,7 +140,7 @@ class ProblemProgressEventCrossVersionTest extends ToolingApiSpecification {
                 $documentationConfig
                 .lineInFileLocation("/tmp/foo", 1, 2, 3)
                 $detailsConfig
-                .additionalData("aKey", "aValue")
+                .additionalData(org.gradle.api.problems.internal.GeneralDataSpec, data -> data.put("aKey", "aValue"))
                 .severity(Severity.WARNING)
                 .solution("try this instead")
             }
@@ -226,6 +229,44 @@ class ProblemProgressEventCrossVersionTest extends ToolingApiSpecification {
         problems[0].definition.id.group.name == 'compilation'
     }
 
+    def "Property validation failure should produce problem report with domain-specific additional data"() {
+        setup:
+        file('buildSrc/src/main/java/MyTask.java') << '''
+            import org.gradle.api.*;
+            import org.gradle.api.tasks.*;
+            import org.gradle.work.*;
+            @DisableCachingByDefault(because = "test task")
+            public class MyTask extends DefaultTask {
+                @Optional @Input
+                boolean getPrimitive() {
+                    return true;
+                }
+                @TaskAction public void execute() {}
+            }
+        '''
+        buildFile << '''
+            tasks.register('myTask', MyTask)
+        '''
+
+        when:
+        def listener = new ProblemProgressListener()
+        withConnection { connection ->
+            connection.newBuild()
+                .forTasks("myTask")
+                .addProgressListener(listener)
+                .setStandardError(System.err)
+                .setStandardOutput(System.out)
+                .addArguments("--info")
+
+                .run()
+        }
+
+        then:
+        thrown(BuildException)
+        listener.problems.size() == 1
+        (listener.problems[0].additionalData as GeneralData).asMap['typeName']== 'MyTask'
+    }
+
     @TargetGradleVersion("=8.6")
     def "8.6 version doesn't send failure"() {
         buildFile """
@@ -247,9 +288,8 @@ class ProblemProgressEventCrossVersionTest extends ToolingApiSpecification {
         thrown(BuildException)
         def problems = listener.problems
         validateCompilationProblem(problems, buildFile)
-        problems[0].failure == null
+        problems[0].failure.failure == null
     }
-
 
     class ProblemProgressListener implements ProgressListener {
 

@@ -16,6 +16,7 @@
 
 package org.gradle.internal.service;
 
+import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.util.List;
 
@@ -26,12 +27,23 @@ public interface AnnotatedServiceLifecycleHandler {
     List<Class<? extends Annotation>> getAnnotations();
 
     /**
+     * When not null, all services are considered to have the implicit annotation
+     * and the handler should be notified about all registrations.
+     */
+    @Nullable
+    Class<? extends Annotation> getImplicitAnnotation();
+
+    /**
      * Called when a service with the given annotation is registered.
      */
     void whenRegistered(Class<? extends Annotation> annotation, Registration registration);
 
     interface Registration {
-        Class<?> getDeclaredType();
+
+        /**
+         * One or more services provided by this registration.
+         */
+        List<Class<?>> getDeclaredTypes();
 
         /**
          * Returns the service instance, creating it if required.

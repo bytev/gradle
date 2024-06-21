@@ -23,9 +23,7 @@ description = "Utilities for working with temporary files & directories"
 gradlebuildJava.usedInWorkers()
 
 dependencies {
-    api(projects.javaLanguageExtensions)
-    api(project(":base-services"))
+    api(projects.stdlibJavaExtensions)
 
-    api(libs.inject)
     api(libs.jsr305)
 }

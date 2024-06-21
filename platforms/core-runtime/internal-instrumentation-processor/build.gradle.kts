@@ -18,18 +18,6 @@ plugins {
     id("gradlebuild.distribution.api-java")
 }
 
-errorprone {
-    disabledChecks.addAll(
-        "DefaultCharset", // 4 occurrences
-        "DoNotClaimAnnotations", // 1 occurrences
-        "ReferenceEquality", // 1 occurrences
-        "ReturnValueIgnored", // 3 occurrences
-        "ShortCircuitBoolean", // 1 occurrences
-        "StringCaseLocaleUsage", // 2 occurrences
-        "ImmutableEnumChecker" // 1 occurrences
-    )
-}
-
 dependencies {
     api(project(":internal-instrumentation-api"))
 
@@ -41,16 +29,20 @@ dependencies {
     implementation(libs.jacksonAnnotations)
     implementation(libs.jacksonDatabind)
 
-    implementation(projects.javaLanguageExtensions)
+    implementation(projects.stdlibJavaExtensions)
     implementation(project(":base-services"))
     implementation(project(":base-asm"))
 
     testCompileOnly(libs.jetbrainsAnnotations)
 
     testImplementation(libs.compileTesting)
-    testImplementation(project(":core"))
+    testImplementation(projects.core)
+    testImplementation(testFixtures(projects.core))
     // TODO remove this
     testImplementation(libs.jetbrainsAnnotations)
+    testRuntimeOnly(project(":distributions-core")) {
+        because("Because we use TestUtil")
+    }
 }
 
 tasks.named<Test>("test").configure {

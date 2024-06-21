@@ -17,7 +17,6 @@
 package org.gradle.integtests.tooling.fixture
 
 import org.gradle.api.GradleException
-import org.gradle.integtests.fixtures.executer.UnexpectedBuildFailure
 import org.gradle.test.fixtures.file.LeaksFileHandles
 import org.gradle.test.precondition.Requires
 import org.gradle.test.preconditions.UnitTestPreconditions
@@ -140,19 +139,6 @@ class CrossVersionToolingApiSpecificationRetryTest extends ToolingApiSpecificati
         ioe.message == "Could not dispatch a message to the daemon."
     }
 
-    @TargetGradleVersion(">=2.6 <2.10")
-    def "retries on clock shift issue for <2.10 if exception is provided through build error output"() {
-        given:
-        iteration++
-
-        when:
-        throwWhen(new UnexpectedBuildFailure("Gradle execution failed",
-            new IllegalArgumentException("Unable to calculate percentage: 19 of -233. All inputs must be >= 0")), iteration == 1)
-
-        then:
-        true
-    }
-
     private static void throwWhen(Throwable throwable, boolean condition) {
         if (condition) {
             throw throwable
@@ -163,7 +149,7 @@ class CrossVersionToolingApiSpecificationRetryTest extends ToolingApiSpecificati
         def logDir = new File(daemonsFixture.daemonBaseDir, daemonsFixture.getVersion())
         logDir.mkdirs()
         def log = new File(logDir, "daemon-fake.log")
-        log << "DefaultDaemonContext[uid=0000,javaHome=javaHome,daemonRegistryDir=daemonRegistryDir,pid=-9999,idleTimeout=120000,daemonOpts=daemonOpts]\n"
+        log << "DefaultDaemonContext[uid=0000,javaHome=javaHome,javaVersion=11,daemonRegistryDir=daemonRegistryDir,pid=-9999,idleTimeout=120000,daemonOpts=daemonOpts]\n"
         log << exceptionInDaemon
     }
 }

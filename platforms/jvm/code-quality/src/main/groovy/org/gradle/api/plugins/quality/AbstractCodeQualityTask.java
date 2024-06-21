@@ -26,6 +26,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.Optional;
 import org.gradle.api.tasks.SourceTask;
 import org.gradle.api.tasks.VerificationTask;
+import org.gradle.internal.instrumentation.api.annotations.ToBeReplacedByLazyProperty;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.jvm.toolchain.internal.CurrentJvmToolchainSpec;
@@ -48,13 +49,14 @@ abstract public class AbstractCodeQualityTask extends SourceTask implements Veri
     @Inject
     public AbstractCodeQualityTask() {
         getIgnoreFailuresProperty().convention(false);
-        getJavaLauncher().convention(getToolchainService().launcherFor(new CurrentJvmToolchainSpec(getObjectFactory())));
+        getJavaLauncher().convention(getToolchainService().launcherFor(getObjectFactory().newInstance(CurrentJvmToolchainSpec.class)));
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
+    @ToBeReplacedByLazyProperty
     public boolean getIgnoreFailures() {
         return getIgnoreFailuresProperty().get();
     }

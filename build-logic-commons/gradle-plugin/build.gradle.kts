@@ -14,7 +14,7 @@ java {
 }
 
 dependencies {
-    compileOnly("com.gradle:develocity-gradle-plugin:3.17.1")
+    compileOnly("com.gradle:develocity-gradle-plugin:3.17.5")
 
     api(platform(project(":build-platform")))
 
@@ -27,4 +27,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.23")
     implementation("org.gradle.kotlin:gradle-kotlin-dsl-conventions")
     implementation("org.gradle:test-retry-gradle-plugin:1.5.2")
+
+    implementation("io.gitlab.arturbosch.detekt:detekt-gradle-plugin:1.23.6")
 }

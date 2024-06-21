@@ -61,12 +61,7 @@ public class DefaultBuildResult implements BuildResult {
 
     @Override
     public List<BuildTask> tasks(final TaskOutcome outcome) {
-        return Collections.unmodifiableList(CollectionUtils.filter(tasks, new Spec<BuildTask>() {
-            @Override
-            public boolean isSatisfiedBy(BuildTask element) {
-                return element.getOutcome() == outcome;
-            }
-        }));
+        return Collections.unmodifiableList(CollectionUtils.filter(tasks, element -> element.getOutcome() == outcome));
     }
 
     @Override

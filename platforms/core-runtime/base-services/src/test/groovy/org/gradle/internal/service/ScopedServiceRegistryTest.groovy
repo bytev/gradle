@@ -19,7 +19,6 @@ package org.gradle.internal.service
 
 import org.gradle.internal.service.scopes.Scope
 import org.gradle.internal.service.scopes.ServiceScope
-import org.gradle.util.internal.ToBeImplemented
 import spock.lang.Specification
 
 class ScopedServiceRegistryTest extends Specification {
@@ -135,7 +134,6 @@ class ScopedServiceRegistryTest extends Specification {
         'provider' | { ScopedServiceRegistry it -> it.addProvider(new BuildTreeScopedServiceInterfaceUnscopedImplProvider()) }
     }
 
-    @ToBeImplemented
     def "fails when registering an unscoped service via #method in strict mode"() {
         given:
         def registry = strictScopedRegistry(Scope.BuildTree)
@@ -144,10 +142,8 @@ class ScopedServiceRegistryTest extends Specification {
         registration(registry)
 
         then:
-        noExceptionThrown()
-        // TODO: support validation of not annotated services
-//        def exception = thrown(IllegalArgumentException)
-//        exception.message.contains("The service implementation '${UnscopedService.name}' is registered in the 'BuildTree' scope but does not declare it explicitly.")
+        def exception = thrown(IllegalArgumentException)
+        exception.message.contains("The service '${UnscopedService.name}' is registered in the 'BuildTree' scope but does not declare it. Add the '@ServiceScope()' annotation on '${UnscopedService.simpleName}' with the 'BuildTree' scope.")
 
         where:
         method     | registration
@@ -195,8 +191,8 @@ class ScopedServiceRegistryTest extends Specification {
 
     static class UnscopedService {}
 
-    static class UnscopedServiceProvider {
-        @SuppressWarnings('unused')
+    static class UnscopedServiceProvider implements ServiceRegistrationProvider {
+        @Provides
         UnscopedService createScopedService() {
             return new UnscopedService()
         }
@@ -208,29 +204,29 @@ class ScopedServiceRegistryTest extends Specification {
 
     static class BuildTreeScopedServiceInterfaceUnscopedImpl implements BuildTreeScopedServiceInterface {}
 
-    static class BuildTreeScopedServiceProvider {
-        @SuppressWarnings('unused')
+    static class BuildTreeScopedServiceProvider implements ServiceRegistrationProvider {
+        @Provides
         BuildTreeScopedService createScopedService() {
             return new BuildTreeScopedService()
         }
     }
 
-    static class BuildTreeScopedServiceInterfaceProvider {
-        @SuppressWarnings('unused')
+    static class BuildTreeScopedServiceInterfaceProvider implements ServiceRegistrationProvider {
+        @Provides
         BuildTreeScopedServiceInterface createScopedService() {
             return new BuildTreeScopedServiceInterfaceUnscopedImpl()
         }
     }
 
-    static class BuildTreeScopedServiceInterfaceUnscopedImplProvider {
-        @SuppressWarnings('unused')
+    static class BuildTreeScopedServiceInterfaceUnscopedImplProvider implements ServiceRegistrationProvider {
+        @Provides
         BuildTreeScopedServiceInterfaceUnscopedImpl createScopedService() {
             return new BuildTreeScopedServiceInterfaceUnscopedImpl()
         }
     }
 
-    static class MultiScopedServiceProvider {
-        @SuppressWarnings('unused')
+    static class MultiScopedServiceProvider implements ServiceRegistrationProvider {
+        @Provides
         GlobalAndBuildScopedService createScopedService() {
             return new GlobalAndBuildScopedService()
         }
@@ -241,7 +237,7 @@ class ScopedServiceRegistryTest extends Specification {
             super(Scope.Build, "broken service registry")
         }
 
-        @SuppressWarnings('unused')
+        @Provides
         BuildTreeScopedService createScopedService() {
             return new BuildTreeScopedService()
         }

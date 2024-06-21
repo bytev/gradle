@@ -22,6 +22,7 @@ import org.gradle.internal.nativeintegration.jansi.JansiStorageLocator
 import org.gradle.test.fixtures.file.TestNameTestDirectoryProvider
 import org.gradle.test.precondition.Requires
 import org.gradle.test.preconditions.IntegTestPreconditions
+import org.gradle.util.internal.ToBeImplemented
 import org.junit.Rule
 import spock.lang.Issue
 
@@ -55,9 +56,12 @@ class NativeServicesIntegrationTest extends AbstractIntegrationSpec {
         nativeDir.directory
     }
 
+    @ToBeImplemented("https://github.com/gradle/gradle/issues/28203")
     def "native services are #description with systemProperties == #systemProperties"() {
         given:
-        executer.requireOwnGradleUserHomeDir().withNoExplicitNativeServicesDir()
+        // We set Gradle User Home to a different temporary directory that is outside
+        // a project dir to avoid file lock issues on Windows due to native services being loaded
+        executer.withGradleUserHomeDir(tmpDir.testDirectory).withNoExplicitNativeServicesDir()
         nativeDir = new File(executer.gradleUserHomeDir, 'native')
         executer.withArguments(systemProperties.collect { it.toString() })
         buildFile << """
@@ -87,13 +91,15 @@ class NativeServicesIntegrationTest extends AbstractIntegrationSpec {
         nativeDir.exists() == initialized
 
         where:
+        // Works for all cases except -D$NATIVE_SERVICES_OPTION=false
         description       | systemProperties                    | initialized
         "initialized"     | ["-D$NATIVE_SERVICES_OPTION=true"]  | true
-        "not initialized" | ["-D$NATIVE_SERVICES_OPTION=false"] | false
+        "not initialized" | ["-D$NATIVE_SERVICES_OPTION=false"] | true // Should be false
         "initialized"     | ["-D$NATIVE_SERVICES_OPTION=''"]    | true
         "initialized"     | []                                  | true
     }
 
+    @ToBeImplemented("https://github.com/gradle/gradle/issues/28203")
     def "native services flag should be passed to the daemon and to the worker"() {
         given:
         executer.withArguments(systemProperties.collect { it.toString() })
@@ -103,7 +109,7 @@ class NativeServicesIntegrationTest extends AbstractIntegrationSpec {
             import org.gradle.internal.nativeintegration.NativeCapabilities
 
             tasks.register("doWork", WorkerTask)
-            println("Uses native integration in daemon: " + NativeServices.instance.createNativeCapabilities().useNativeIntegrations())
+            println("Uses native integration in daemon: " + NativeServices.INSTANCE.createNativeCapabilities().useNativeIntegrations())
 
             abstract class WorkerTask extends DefaultTask {
                 @Inject
@@ -117,7 +123,7 @@ class NativeServicesIntegrationTest extends AbstractIntegrationSpec {
 
             abstract class NoOpWorkAction implements WorkAction<WorkParameters.None> {
                 void execute() {
-                    println("Uses native integration in worker: " + NativeServices.instance.createNativeCapabilities().useNativeIntegrations())
+                    println("Uses native integration in worker: " + NativeServices.INSTANCE.createNativeCapabilities().useNativeIntegrations())
                 }
             }
         """)
@@ -130,9 +136,10 @@ class NativeServicesIntegrationTest extends AbstractIntegrationSpec {
         outputContains("Uses native integration in worker: $usesNativeIntegration")
 
         where:
+        // Works for all cases except -D$NATIVE_SERVICES_OPTION=false
         systemProperties                    | usesNativeIntegration
         ["-D$NATIVE_SERVICES_OPTION=true"]  | true
-        ["-D$NATIVE_SERVICES_OPTION=false"] | false
+        ["-D$NATIVE_SERVICES_OPTION=false"] | true // Should be false
         ["-D$NATIVE_SERVICES_OPTION=''"]    | true
         []                                  | true
     }
@@ -194,7 +201,7 @@ class NativeServicesIntegrationTest extends AbstractIntegrationSpec {
                     buildFile << \"""
                         println("Build inside a test executor initialized Native services: " + new File("${nativeDirOverride}").exists())
                         println("Build inside a test executor uses Native services: " +
-                            org.gradle.internal.nativeintegration.services.NativeServices.instance.createNativeCapabilities().useNativeIntegrations())
+                            org.gradle.internal.nativeintegration.services.NativeServices.INSTANCE.createNativeCapabilities().useNativeIntegrations())
                     \"""
 
                     when:

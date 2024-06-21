@@ -1,35 +1,17 @@
 plugins {
     id("gradlebuild.distribution.api-java")
+    id("gradlebuild.jmh")
 }
 
 description = "Logging infrastructure"
 
 gradlebuildJava.usedInWorkers()
 
-errorprone {
-    disabledChecks.addAll(
-        "AnnotateFormatMethod", // 1 occurrences
-        "DefaultCharset", // 3 occurrences
-        "DoubleBraceInitialization", // 1 occurrences
-        "FutureReturnValueIgnored", // 2 occurrences
-        "InlineFormatString", // 1 occurrences
-        "MixedMutabilityReturnType", // 1 occurrences
-        "NullableVoid", // 1 occurrences
-        "OverridingMethodInconsistentArgumentNamesChecker", // 15 occurrences
-        "ReferenceEquality", // 1 occurrences
-        "SameNameButDifferent", // 11 occurrences
-        "StringCaseLocaleUsage", // 12 occurrences
-        "StringSplitter", // 4 occurrences
-        "ThreadLocalUsage", // 1 occurrences
-        "TypeParameterUnusedInFormals", // 1 occurrences
-        "UnnecessaryParentheses", // 3 occurrences
-        "UnusedMethod", // 3 occurrences
-        "UnusedVariable", // 1 occurrences
-    )
-}
-
 dependencies {
-    api(projects.javaLanguageExtensions)
+    api(projects.stdlibJavaExtensions)
+    api(projects.serialization)
+    api(projects.serviceProvider)
+    api(projects.time)
     api(project(":base-services"))
     api(project(":build-operations"))
     api(project(":build-option"))
@@ -37,19 +19,19 @@ dependencies {
     api(project(":enterprise-logging"))
     api(project(":enterprise-workers"))
     api(project(":logging-api"))
-    api(project(":messaging"))
     api(project(":native"))
     api(project(":problems-api"))
-    api(project(":functional"))
 
     api(libs.jansi)
     api(libs.jsr305)
     api(libs.slf4jApi)
 
     implementation(projects.concurrent)
+    implementation(projects.io)
+    implementation(projects.messaging)
 
+    implementation(libs.errorProneAnnotations)
     implementation(libs.julToSlf4j)
-    implementation(libs.ant)
     implementation(libs.commonsLang)
     implementation(libs.commonsIo)
     implementation(libs.guava)

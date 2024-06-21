@@ -177,15 +177,21 @@ fun BuildSteps.checkCleanM2AndAndroidUserHome(os: Os = Os.LINUX, buildType: Buil
         name = "CHECK_CLEAN_M2_ANDROID_USER_HOME"
         executionMode = BuildStep.ExecutionMode.ALWAYS
         scriptContent = if (os == Os.WINDOWS) {
-            checkCleanDirWindows("%teamcity.agent.jvm.user.home%\\.m2\\repository") + checkCleanDirWindows("%teamcity.agent.jvm.user.home%\\.m2\\.gradle-enterprise") + checkCleanDirWindows(
-                "%teamcity.agent.jvm.user.home%\\.android",
-                false
-            )
+            checkCleanDirWindows("%teamcity.agent.jvm.user.home%\\.m2\\repository") +
+                checkCleanDirWindows("%teamcity.agent.jvm.user.home%\\.m2\\.gradle-enterprise") +
+                checkCleanDirWindows("%teamcity.agent.jvm.user.home%\\.m2\\.develocity") +
+                checkCleanDirWindows(
+                    "%teamcity.agent.jvm.user.home%\\.android",
+                    false
+                )
         } else {
-            checkCleanDirUnixLike("%teamcity.agent.jvm.user.home%/.m2/repository") + checkCleanDirUnixLike("%teamcity.agent.jvm.user.home%/.m2/.gradle-enterprise") + checkCleanDirUnixLike(
-                "%teamcity.agent.jvm.user.home%/.android",
-                false
-            )
+            checkCleanDirUnixLike("%teamcity.agent.jvm.user.home%/.m2/repository") +
+                checkCleanDirUnixLike("%teamcity.agent.jvm.user.home%/.m2/.gradle-enterprise") +
+                checkCleanDirUnixLike("%teamcity.agent.jvm.user.home%/.m2/.develocity") +
+                checkCleanDirUnixLike(
+                    "%teamcity.agent.jvm.user.home%/.android",
+                    false
+                )
         }
         skipConditionally(buildType)
     }
@@ -258,10 +264,10 @@ fun functionalTestExtraParameters(buildScanTag: String, os: Os, arch: Arch, test
         ).filter { it.isNotBlank() }.joinToString(separator = " ")
 }
 
-fun functionalTestParameters(os: Os): List<String> {
+fun functionalTestParameters(os: Os, arch: Arch = Arch.AMD64): List<String> {
     return listOf(
         "-PteamCityBuildId=%teamcity.build.id%",
-        os.javaInstallationLocations(),
+        os.javaInstallationLocations(arch),
         "-Porg.gradle.java.installations.auto-download=false",
         "-Porg.gradle.java.installations.auto-detect=false",
     )

@@ -22,7 +22,8 @@ dependencies {
     api(project(":model-core"))
     api(project(":platform-jvm"))
 
-    implementation(projects.javaLanguageExtensions)
+    implementation(projects.internalInstrumentationApi)
+    implementation(projects.stdlibJavaExtensions)
     implementation(project(":core"))
     implementation(project(":dependency-management"))
     implementation(project(":execution"))
@@ -36,8 +37,6 @@ dependencies {
     implementation(libs.groovyXml)
     implementation(libs.guava)
     implementation(libs.commonsLang)
-
-    runtimeOnly(project(":plugins"))
 
     testImplementation(project(":base-services-groovy"))
     testImplementation(testFixtures(project(":core")))

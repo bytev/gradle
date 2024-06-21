@@ -22,12 +22,12 @@ import org.gradle.internal.dispatch.Dispatch;
 import org.gradle.internal.dispatch.MethodInvocation;
 import org.gradle.internal.dispatch.ProxyDispatchAdapter;
 import org.gradle.internal.dispatch.ReflectionDispatch;
-import org.gradle.internal.service.AnnotatedServiceLifecycleHandler;
 import org.gradle.internal.service.scopes.EventScope;
 import org.gradle.internal.service.scopes.ListenerService;
 import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.StatefulListener;
 
+import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class DefaultListenerManager implements ListenerManager, AnnotatedServiceLifecycleHandler {
+public class DefaultListenerManager implements ScopedListenerManager {
     private static final List<Class<? extends Annotation>> ANNOTATIONS = ImmutableList.of(StatefulListener.class, ListenerService.class);
     private final Map<Object, ListenerDetails> allListeners = new LinkedHashMap<Object, ListenerDetails>();
     private final Map<Object, ListenerDetails> allLoggers = new LinkedHashMap<Object, ListenerDetails>();
@@ -66,6 +66,12 @@ public class DefaultListenerManager implements ListenerManager, AnnotatedService
         return ANNOTATIONS;
     }
 
+    @Nullable
+    @Override
+    public Class<? extends Annotation> getImplicitAnnotation() {
+        return null;
+    }
+
     @Override
     public void whenRegistered(Class<? extends Annotation> annotation, Registration registration) {
         synchronized (lock) {
@@ -82,14 +88,15 @@ public class DefaultListenerManager implements ListenerManager, AnnotatedService
 
     private void maybeAddPendingRegistrations(Class<?> type) {
         synchronized (lock) {
-            for (int i = 0; i < pendingServices.size(); i++) {
-                Registration registration = pendingServices.get(i);
+            for (Registration registration : pendingServices) {
                 addListener(registration.getInstance());
             }
             pendingServices.clear();
-            for (int i = 0; i < pendingRegistrations.size();) {
+
+            int i = 0;
+            while (i < pendingRegistrations.size()) {
                 Registration registration = pendingRegistrations.get(i);
-                if (type.isAssignableFrom(registration.getDeclaredType())) {
+                if (registrationProvides(type, registration)) {
                     addListener(registration.getInstance());
                     pendingRegistrations.remove(i);
                 } else {
@@ -97,6 +104,15 @@ public class DefaultListenerManager implements ListenerManager, AnnotatedService
                 }
             }
         }
+    }
+
+    private static boolean registrationProvides(Class<?> type, Registration registration) {
+        for (Class<?> declaredType : registration.getDeclaredTypes()) {
+            if (type.isAssignableFrom(declaredType)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -186,13 +202,7 @@ public class DefaultListenerManager implements ListenerManager, AnnotatedService
         }
     }
 
-    /**
-     * Creates a child {@code ListenerManager}. All events broadcast in the child will be received by the listeners
-     * registered in the parent. However, the reverse is not true: events broadcast in the parent are not received
-     * by the listeners in the children. The child inherits the loggers of its parent, though these can be replaced.
-     *
-     * @return The child
-     */
+    @Override
     public DefaultListenerManager createChild(Class<? extends Scope> scope) {
         return new DefaultListenerManager(scope, this);
     }
@@ -319,7 +329,7 @@ public class DefaultListenerManager implements ListenerManager, AnnotatedService
         }
 
         public void checkRegistration(Registration registration) {
-            if (type.isAssignableFrom(registration.getDeclaredType())) {
+            if (registrationProvides(type, registration)) {
                 broadcasterLock.lock();
                 try {
                     checkListenersCanBeAdded();

@@ -1,13 +1,13 @@
 plugins {
     id("gradlebuild.distribution.api-java")
+    id("gradlebuild.publish-public-libraries")
     id("gradlebuild.jmh")
 }
 
 description = "Local build cache implementation"
 
 dependencies {
-    api(projects.javaLanguageExtensions)
-    api(project(":base-services"))
+    api(projects.stdlibJavaExtensions)
     api(project(":build-cache"))
     api(project(":build-cache-spi"))
     api(project(":files"))
@@ -15,13 +15,8 @@ dependencies {
     api(project(":hashing"))
     api(project(":persistent-cache"))
 
+    implementation(libs.commonsIo)
     implementation(libs.guava)
-    implementation(libs.h2Database) {
-        because("Used in BuildCacheNG")
-    }
-    implementation(libs.hikariCP) {
-        because("Used in BuildCacheNG")
-    }
 
     testImplementation(project(":model-core"))
     testImplementation(project(":file-collections"))
