@@ -16,15 +16,14 @@
 
 package org.gradle.internal.failure
 
-import com.google.common.collect.ImmutableList
+
 import org.gradle.internal.exceptions.DefaultMultiCauseException
-import org.gradle.internal.exceptions.MultiCauseException
-import org.gradle.internal.problems.failure.DefaultFailure
 import org.gradle.internal.problems.failure.Failure
 import org.gradle.internal.problems.failure.FailurePrinter
 import org.gradle.internal.problems.failure.FailurePrinterListener
 import spock.lang.Specification
 
+import static org.gradle.internal.problems.failure.FailurePrinterListener.*
 import static org.gradle.internal.problems.failure.StackTraceRelevance.USER_CODE
 
 class FailurePrinterTest extends Specification {
@@ -75,6 +74,50 @@ class FailurePrinterTest extends Specification {
     }
 
     def "notifies the listener"() {
+        given:
+        def e = new RuntimeException("BOOM")
+        def firstFrame = e.stackTrace[0]
+        def listener = Mock(FailurePrinterListener)
+        def f = toFailure(e)
+
+        when:
+        def output = new StringBuilder().tap {
+            FailurePrinter.print(it, f, listener)
+        }.toString()
+
+        then:
+        getTraceString(e).startsWith(output)
+
+        and:
+        1 * listener.beforeFrames() >> VisitResult.CONTINUE
+        1 * listener.beforeFrame(firstFrame, USER_CODE) >> VisitResult.CONTINUE
+        _ * listener.beforeFrame(_, _) >> VisitResult.CONTINUE
+        1 * listener.afterFrames() >> VisitResult.CONTINUE
+        0 * _
+    }
+
+    def "listener can terminate traversal before frames"() {
+        given:
+        def e = new RuntimeException("BOOM")
+        def listener = Mock(FailurePrinterListener)
+        def f = toFailure(e)
+
+        when:
+        def output = new StringBuilder().tap {
+            FailurePrinter.print(it, f, listener)
+        }.toString()
+
+        then:
+        output == head(getTraceString(e), 1)
+
+        and:
+        1 * listener.beforeFrames() >> VisitResult.TERMINATE
+        0 * listener.beforeFrame(_, _)
+        0 * _
+    }
+
+    def "listener can terminate traversal after a frame"() {
+        given:
         def e = new RuntimeException("BOOM")
         def firstFrame = e.stackTrace[0]
 
@@ -83,37 +126,54 @@ class FailurePrinterTest extends Specification {
         def f = toFailure(e)
 
         when:
-        def output = new StringBuilder()
-        FailurePrinter.print(output, f, listener)
+        def output = new StringBuilder().tap {
+            FailurePrinter.print(it, f, listener)
+        }.toString()
 
         then:
-        getTraceString(e).startsWith(output.toString())
+        output == head(getTraceString(e), 2)
 
         and:
-        1 * listener.beforeFrames()
-        1 * listener.beforeFrame(firstFrame, USER_CODE)
-        1 * listener.afterFrames()
+        1 * listener.beforeFrames() >> VisitResult.CONTINUE
+        1 * listener.beforeFrame(firstFrame, USER_CODE) >> VisitResult.CONTINUE
+        1 * listener.beforeFrame(_, _) >> VisitResult.TERMINATE
+        0 * _
+    }
+
+    def "listener can terminate traversal after frames"() {
+        given:
+        def e = new RuntimeException("BOOM", new RuntimeException("BOOM CAUSE"))
+
+        def listener = Mock(FailurePrinterListener)
+
+        def f = toFailure(e)
+
+        when:
+        def output = new StringBuilder().tap {
+            FailurePrinter.print(it, f, listener)
+        }.toString()
+
+        then:
+        !output.contains("BOOM CAUSE")
+
+        and:
+        1 * listener.beforeFrames() >> VisitResult.CONTINUE
+        _ * listener.beforeFrame(_, _) >> VisitResult.CONTINUE
+        1 * listener.afterFrames() >> VisitResult.TERMINATE
+        0 * _
     }
 
     private static Failure toFailure(Throwable t) {
-        def stack = ImmutableList.copyOf(t.stackTrace)
-        def relevances = Collections.nCopies(stack.size(), USER_CODE)
-        def causes = getCauses(t).collect { toFailure(it) }
-        def suppressed = t.getSuppressed().collect { toFailure(it) }
-        new DefaultFailure(t, stack, relevances, suppressed, causes)
-    }
-
-    private static List<Throwable> getCauses(Throwable t) {
-        if (t instanceof MultiCauseException) {
-            return t.causes
-        }
-
-        t.getCause() == null ? ImmutableList.of() : ImmutableList.of(t.getCause())
+        new TestFailureFactory().createFailure(t)
     }
 
     private static String getTraceString(Throwable t) {
         StringWriter out = new StringWriter()
         t.printStackTrace(new PrintWriter(out))
         out.toString()
+    }
+
+    private static String head(String text, int lines) {
+        text.readLines().take(lines).join("\n") + "\n"
     }
 }
