@@ -17,7 +17,6 @@
 package org.gradle.testkit.runner.internal;
 
 import com.google.common.io.ByteSource;
-import org.gradle.api.specs.Spec;
 import org.gradle.testkit.runner.BuildResult;
 import org.gradle.testkit.runner.BuildTask;
 import org.gradle.testkit.runner.TaskOutcome;
