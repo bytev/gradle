@@ -222,7 +222,7 @@ class ConfigurationCacheProblems(
     private
     fun ProblemSpec.documentOfProblem(problem: PropertyProblem) {
         problem.documentationSection?.let {
-            documentedAt(Documentation.userManual("configuration_cache", it.anchor).toString())
+            documentedAt(Documentation.userManual("configuration_cache", it.anchor).url)
         }
     }
 
@@ -299,10 +299,10 @@ class ConfigurationCacheProblems(
     }
 
     private
-    fun detailsFor(summary: Summary): ConfigurationCacheReportDetails {
+    fun detailsFor(summary: Summary): ProblemReportDetails {
         val cacheActionText = cacheAction.summaryText()
         val requestedTasks = startParameter.requestedTasksOrDefault()
-        return ConfigurationCacheReportDetails(buildName, cacheActionText, cacheActionDescription, requestedTasks, summary.problemCount)
+        return ProblemReportDetails(buildName, cacheActionText, cacheActionDescription, requestedTasks, summary.problemCount)
     }
 
     private

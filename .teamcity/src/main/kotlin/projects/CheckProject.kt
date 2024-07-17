@@ -3,6 +3,7 @@ package projects
 import common.cleanupRule
 import common.hiddenArtifactDestination
 import common.isSecurityFork
+import configurations.BaseGradleBuildType
 import configurations.GitHubMergeQueueCheckPass
 import configurations.PerformanceTestsPass
 import configurations.StagePasses
@@ -30,6 +31,7 @@ class CheckProject(
         // Avoid rebuilding same revision if it's already built on another branch
         param("teamcity.vcsTrigger.runBuildOnSameRevisionInEveryBranch", "false")
         param("env.DEVELOCITY_ACCESS_KEY", "%ge.gradle.org.access.key%")
+        param("env.CHROME_BIN", "%linux.chrome.bin.path%")
 
         text(
             "additional.gradle.parameters",
@@ -56,17 +58,19 @@ class CheckProject(
 
     var prevStage: Stage? = null
     val previousPerformanceTestPasses: MutableList<PerformanceTestsPass> = mutableListOf()
+    val previousCrossVersionTests: MutableList<BaseGradleBuildType> = mutableListOf()
     model.stages.forEach { stage ->
         if (isSecurityFork() && stage.stageName > StageName.READY_FOR_RELEASE) {
             return@forEach
         }
-        val stageProject = StageProject(model, functionalTestBucketProvider, performanceTestBucketProvider, stage, previousPerformanceTestPasses)
+        val stageProject = StageProject(model, functionalTestBucketProvider, performanceTestBucketProvider, stage, previousPerformanceTestPasses, previousCrossVersionTests)
         val stagePasses = StagePasses(model, stage, prevStage, stageProject)
         buildType(stagePasses)
         subProject(stageProject)
 
         prevStage = stage
         previousPerformanceTestPasses.addAll(stageProject.performanceTests)
+        previousCrossVersionTests.addAll(stageProject.crossVersionTests)
     }
 
     buildType(GitHubMergeQueueCheckPass(model))

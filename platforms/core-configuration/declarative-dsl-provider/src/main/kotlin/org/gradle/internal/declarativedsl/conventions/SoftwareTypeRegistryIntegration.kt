@@ -16,35 +16,48 @@
 
 package org.gradle.internal.declarativedsl.conventions
 
+import org.gradle.internal.declarativedsl.analysis.AssignmentRecord
+import org.gradle.internal.declarativedsl.analysis.DataAdditionRecord
+import org.gradle.internal.declarativedsl.analysis.NestedObjectAccessRecord
 import org.gradle.internal.declarativedsl.evaluator.conventions.ConventionDefinitionRegistrar
 import org.gradle.internal.declarativedsl.evaluator.conventions.SoftwareTypeConventionRepository
 import org.gradle.internal.declarativedsl.evaluator.conventions.SoftwareTypeConventionResolutionResults
+import org.gradle.plugin.software.internal.Convention
+import org.gradle.plugin.software.internal.SoftwareTypeImplementation
 import org.gradle.plugin.software.internal.SoftwareTypeRegistry
 
 
 internal
 fun softwareTypeRegistryBasedConventionRepository(softwareTypeRegistry: SoftwareTypeRegistry): SoftwareTypeConventionRepository = object : SoftwareTypeConventionRepository {
     override fun findConventions(softwareTypeName: String): SoftwareTypeConventionResolutionResults? =
-        // TODO: optimize O(n) lookup
-        softwareTypeRegistry.softwareTypeImplementations.find { it.softwareType == softwareTypeName }?.let { softwareType ->
-            val assignments = buildList {
-                softwareType.conventions.filterIsInstance<AssignmentRecordConvention>().forEach { it.apply(::add) }
-            }
-            val additions = buildList {
-                softwareType.conventions.filterIsInstance<AdditionRecordConvention>().forEach { it.apply(::add) }
-            }
-            val nestedObjectAccess = buildList {
-                softwareType.conventions.filterIsInstance<NestedObjectAccessConvention>().forEach { it.apply(::add) }
-            }
-            SoftwareTypeConventionResolutionResults(softwareTypeName, assignments, additions, nestedObjectAccess)
+        softwareTypeRegistry.softwareTypeImplementations[softwareTypeName]?.let { softwareType ->
+            conventionResolutionResultsFrom(softwareTypeName, softwareType)
         }
+}
+
+
+private
+fun conventionResolutionResultsFrom(softwareTypeName: String, softwareType: SoftwareTypeImplementation<*>): SoftwareTypeConventionResolutionResults {
+    val assignments = buildList {
+        softwareType.visitConventions(AssignmentRecordConvention::class.java,
+            Convention.Visitor<AssignmentRecord> { record -> add(record) })
+    }
+    val additions = buildList {
+        softwareType.visitConventions(AdditionRecordConvention::class.java,
+            Convention.Visitor<DataAdditionRecord> { record -> add(record) })
+    }
+    val nestedObjectAccess = buildList {
+        softwareType.visitConventions(NestedObjectAccessConvention::class.java,
+            Convention.Visitor<NestedObjectAccessRecord> { record -> add(record) })
+    }
+    return SoftwareTypeConventionResolutionResults(softwareTypeName, assignments, additions, nestedObjectAccess)
 }
 
 
 internal
 fun softwareTypeRegistryBasedConventionRegistrar(softwareTypeRegistry: SoftwareTypeRegistry): ConventionDefinitionRegistrar = object : ConventionDefinitionRegistrar {
     override fun registerConventions(conventionsBySoftwareType: Map<String, SoftwareTypeConventionResolutionResults>) {
-        softwareTypeRegistry.softwareTypeImplementations.forEach { softwareTypeImplementation ->
+        softwareTypeRegistry.softwareTypeImplementations.values.forEach { softwareTypeImplementation ->
             conventionsBySoftwareType[softwareTypeImplementation.softwareType]?.let { conventions ->
                 val conventionRecords = conventions.additions.map(::AdditionRecordConvention) +
                     conventions.assignments.map(::AssignmentRecordConvention) +

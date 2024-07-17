@@ -23,7 +23,6 @@ import org.gradle.api.internal.initialization.ClassLoaderScope
 import org.gradle.declarative.dsl.evaluation.InterpretationSequence
 import org.gradle.groovy.scripts.ScriptSource
 import org.gradle.internal.declarativedsl.conventions.softwareTypeRegistryBasedConventionRegistrar
-import org.gradle.internal.declarativedsl.conventions.softwareTypeRegistryBasedConventionRepository
 import org.gradle.internal.declarativedsl.evaluator.runner.EvaluationResult.NotEvaluated
 import org.gradle.internal.declarativedsl.evaluator.runner.EvaluationResult.NotEvaluated.StageFailure.NoSchemaAvailable
 import org.gradle.internal.declarativedsl.evaluator.checks.DocumentCheck
@@ -40,6 +39,7 @@ import org.gradle.internal.declarativedsl.evaluator.schema.InterpretationSchemaB
 import org.gradle.internal.declarativedsl.evaluator.schema.InterpretationSchemaBuildingResult
 import org.gradle.internal.declarativedsl.evaluator.schema.DeclarativeScriptContext
 import org.gradle.internal.declarativedsl.settings.SettingsBlocksCheck
+import org.gradle.internal.declarativedsl.settings.UnsupportedSyntaxFeatureCheck
 import org.gradle.plugin.software.internal.SoftwareTypeRegistry
 
 
@@ -59,10 +59,10 @@ fun defaultDeclarativeScriptEvaluator(
     softwareTypeRegistry: SoftwareTypeRegistry
 ): DeclarativeKotlinScriptEvaluator = DefaultDeclarativeKotlinScriptEvaluator(
     schemaBuilder,
-    documentChecks = setOf(SettingsBlocksCheck),
+    documentChecks = setOf(SettingsBlocksCheck, UnsupportedSyntaxFeatureCheck),
     resolutionResultHandlers = setOf(
-        ConventionDefinitionCollector(softwareTypeRegistryBasedConventionRegistrar(softwareTypeRegistry)),
-        ConventionApplicationHandler(softwareTypeRegistryBasedConventionRepository(softwareTypeRegistry))
+        ConventionApplicationHandler.DO_NOTHING,
+        ConventionDefinitionCollector(softwareTypeRegistryBasedConventionRegistrar(softwareTypeRegistry))
     )
 )
 

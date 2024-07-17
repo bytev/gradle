@@ -16,7 +16,6 @@
 
 package org.gradle.declarative.dsl.tooling.builders.r89
 
-import org.gradle.api.internal.plugins.software.SoftwareType
 import org.gradle.declarative.dsl.tooling.builders.AbstractDeclarativeDslToolingModelsCrossVersionTest
 import org.gradle.declarative.dsl.tooling.models.DeclarativeSchemaModel
 import org.gradle.integtests.tooling.fixture.TargetGradleVersion
@@ -34,13 +33,15 @@ import org.gradle.internal.declarativedsl.objectGraph.AssignmentResolver.Assignm
 import org.gradle.internal.declarativedsl.parsing.DefaultLanguageTreeBuilder
 import org.gradle.internal.declarativedsl.parsing.ParserKt
 import org.gradle.test.fixtures.plugin.PluginBuilder
-import org.gradle.tooling.ModelBuilder
+import org.gradle.tooling.events.ProgressEvent
+import org.gradle.tooling.events.ProgressListener
+import org.gradle.tooling.events.lifecycle.BuildPhaseStartEvent
 
 @TargetGradleVersion(">=8.9")
 @ToolingApiVersion('>=8.9')
 class DeclarativeDslToolingModelsCrossVersionTest extends AbstractDeclarativeDslToolingModelsCrossVersionTest {
 
-    def setup(){
+    def setup() {
         settingsFile.delete() //we are using a declarative settings file
     }
 
@@ -64,6 +65,24 @@ class DeclarativeDslToolingModelsCrossVersionTest extends AbstractDeclarativeDsl
 
         def schema = model.getProjectSchema()
         !schema.dataClassesByFqName.isEmpty()
+    }
+
+    def 'model is obtained without configuring the project'() {
+        given:
+        file("settings.gradle.dcl") << """
+            rootProject.name = "test"
+            include(":a")
+        """
+
+        file("a/build.gradle.dcl") << ""
+
+        when:
+        def listener = new ConfigurationPhaseMonitoringListener()
+        DeclarativeSchemaModel model = fetchSchemaModel(DeclarativeSchemaModel.class, listener)
+
+        then:
+        model != null
+        listener.hasSeenSomeEvents && listener.configPhaseStartEvents.isEmpty()
     }
 
     def 'schema contains custom software type from included build'() {
@@ -329,12 +348,14 @@ class DeclarativeDslToolingModelsCrossVersionTest extends AbstractDeclarativeDsl
         return pluginBuilder
     }
 
-    private <T> T fetchSchemaModel(Class<T> modelType) {
-        toolingApi.withConnection() { connection ->
-            ModelBuilder<T> modelBuilder = connection.model(modelType)
-            collectOutputs(modelBuilder)
-            modelBuilder.get()
-        }
+    private <T> T fetchSchemaModel(Class<T> modelType, ProgressListener listener = null) {
+        toolingApi.withConnection({ connection ->
+            def model = connection.model(modelType)
+            if (listener != null) {
+                model.addProgressListener(listener)
+            }
+            model.get()
+        })
     }
 
     private static boolean documentIsEquivalentTo(
@@ -348,5 +369,22 @@ class DeclarativeDslToolingModelsCrossVersionTest extends AbstractDeclarativeDsl
         )
         def expectedDocument = LanguageTreeToDomKt.toDocument(languageTree)
         DataStructuralEqualityKt.structurallyEqualsAsData(doc, expectedDocument)
+    }
+
+    private static final class ConfigurationPhaseMonitoringListener implements ProgressListener {
+
+        boolean hasSeenSomeEvents = false
+        final List<ProgressEvent> configPhaseStartEvents = new ArrayList<>()
+
+        @Override
+        void statusChanged(ProgressEvent event) {
+            hasSeenSomeEvents = true
+            if (event instanceof BuildPhaseStartEvent) {
+                BuildPhaseStartEvent buildPhaseStartEvent = (BuildPhaseStartEvent) event
+                if (buildPhaseStartEvent.descriptor.buildPhase.startsWith("CONFIGURE")) {
+                    configPhaseStartEvents.add(event)
+                }
+            }
+        }
     }
 }

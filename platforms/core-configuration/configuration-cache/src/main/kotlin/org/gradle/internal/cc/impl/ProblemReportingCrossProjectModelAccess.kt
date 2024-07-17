@@ -173,6 +173,7 @@ class ProblemReportingCrossProjectModelAccess(
         }
     }
 
+    @Suppress("LargeClass")
     private
     class ProblemReportingProject(
         val delegate: ProjectInternal,
@@ -221,6 +222,7 @@ class ProblemReportingCrossProjectModelAccess(
             )
         }
 
+        @Suppress("SpreadOperator")
         override fun invokeMethod(name: String, args: Any): Any? {
             // Attempt to get the property value via this instance. If not present, then attempt to lookup via the delegate
             val varargs: Array<Any?> = args.uncheckedCast()
@@ -232,6 +234,7 @@ class ProblemReportingCrossProjectModelAccess(
 
             onProjectsCoupled()
 
+            @Suppress("SpreadOperator")
             return withDelegateDynamicCallReportingConfigurationOrder(
                 name,
                 action = { tryInvokeMethod(name, *varargs) },
@@ -1035,6 +1038,10 @@ class ProblemReportingCrossProjectModelAccess(
             return delegate.projectPath
         }
 
+        override fun getProjectIdentityPath(): Path? {
+            return delegate.projectIdentityPath
+        }
+
         override fun getIdentityPath(): Path {
             return delegate.identityPath
         }
@@ -1130,6 +1137,7 @@ class ProblemReportingCrossProjectModelAccess(
             }
         }
 
+        @Suppress("ThrowingExceptionsWithoutMessageOrCause")
         private
         fun reportCrossProjectAccessProblem(
             accessRef: String,

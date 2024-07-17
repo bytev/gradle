@@ -21,6 +21,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.initialization.Settings
 import org.gradle.internal.declarativedsl.analysis.analyzeEverything
+import org.gradle.internal.declarativedsl.common.gradleDslGeneralSchema
 import org.gradle.internal.declarativedsl.evaluationSchema.buildEvaluationAndConversionSchema
 import org.gradle.internal.declarativedsl.evaluationSchema.buildEvaluationSchema
 import org.gradle.plugin.software.internal.Convention
@@ -41,17 +42,19 @@ class SoftwareTypesTest {
                     override fun getModelPublicType(): Class<out Subtype> = Subtype::class.java
                     override fun getPluginClass(): Class<out Plugin<Project>> = SubtypePlugin::class.java
                     override fun getRegisteringPluginClass(): Class<out Plugin<Settings>> = SubtypeEcosystemPlugin::class.java
-                    override fun addConvention(rule: Convention<*>) {}
-                    override fun getConventions(): List<Convention<*>> = emptyList()
-                })
+                    override fun addConvention(rule: Convention<*>) = Unit
+                    override fun <V : Convention.Visitor<*>> visitConventions(type: Class<out Convention<V>>, visitor: V) = Unit
+                }).associateBy { it.softwareType }
             )
         }
 
         val schemaForSettings = buildEvaluationSchema(TopLevel::class, analyzeEverything) {
+            gradleDslGeneralSchema()
             softwareTypesConventions(TopLevel::class, registryMock)
         }
 
         val schemaForProject = buildEvaluationAndConversionSchema(TopLevel::class, analyzeEverything) {
+            gradleDslGeneralSchema()
             softwareTypesWithPluginApplication(TopLevel::class, registryMock)
         }
 

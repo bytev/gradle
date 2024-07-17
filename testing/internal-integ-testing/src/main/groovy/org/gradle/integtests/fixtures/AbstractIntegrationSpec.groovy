@@ -70,7 +70,7 @@ import static org.gradle.util.Matchers.normalizedLineSeparators
 @CleanupTestDirectory
 @SuppressWarnings("IntegrationTestFixtures")
 @IntegrationTestTimeout(DEFAULT_TIMEOUT_SECONDS)
-abstract class AbstractIntegrationSpec extends Specification {
+abstract class AbstractIntegrationSpec extends Specification implements LanguageSpecificTestFileFixture {
 
     @Rule
     public final TestNameTestDirectoryProvider temporaryFolder = new TestNameTestDirectoryProvider(getClass())
@@ -133,7 +133,7 @@ abstract class AbstractIntegrationSpec extends Specification {
                 KnownProblemIds.assertIsKnown(it)
             }
 
-            if (getReceivedProblems().every {it == null }) {
+            if (getReceivedProblems().every { it == null }) {
                 receivedProblems = null
             } else {
                 println "Problems that were not accessed during test execution:"
@@ -195,42 +195,6 @@ abstract class AbstractIntegrationSpec extends Specification {
         return "junit:junit:4.13"
     }
 
-    void buildFile(@GroovyBuildScriptLanguage String script) {
-        groovyFile(buildFile, script)
-    }
-
-    void settingsFile(@GroovyBuildScriptLanguage String script) {
-        groovyFile(settingsFile, script)
-    }
-
-    /**
-     * Provides best-effort groovy script syntax highlighting.
-     * The highlighting is imperfect since {@link GroovyBuildScriptLanguage} uses stub methods to create a simulated script target environment.
-     */
-    void groovyFile(String targetBuildFile, @GroovyBuildScriptLanguage String script) {
-        groovyFile(file(targetBuildFile), script)
-    }
-
-    void groovyFile(TestFile targetBuildFile, @GroovyBuildScriptLanguage String script) {
-        targetBuildFile << script
-    }
-
-    void javaFile(String targetBuildFile, @Language('JAVA') String code) {
-        javaFile(file(targetBuildFile), code)
-    }
-
-    void javaFile(TestFile targetBuildFile, @Language('JAVA') String code) {
-        targetBuildFile << code
-    }
-
-    static String groovyScript(@GroovyBuildScriptLanguage String script) {
-        script
-    }
-
-    void versionCatalogFile(@Language("toml") String script) {
-        versionCatalogFile << script
-    }
-
     TestFile getBuildKotlinFile() {
         testDirectory.file(defaultBuildKotlinFileName)
     }
@@ -242,32 +206,6 @@ abstract class AbstractIntegrationSpec extends Specification {
     protected String getDefaultBuildKotlinFileName() {
         'build.gradle.kts'
     }
-
-    /**
-     * Sets (replacing) the contents of the build.gradle file.
-     *
-     * To append, use #buildFile(String).
-     */
-    protected TestFile buildScript(@GroovyBuildScriptLanguage String script) {
-        buildFile.text = script
-        buildFile
-    }
-
-    /**
-     * Sets (replacing) the contents of the settings.gradle file.
-     *
-     * To append, use #settingsFile(String)
-     */
-    protected TestFile settingsScript(@GroovyBuildScriptLanguage String script) {
-        settingsFile.text = script
-        settingsFile
-    }
-
-    protected TestFile initScript(@GroovyBuildScriptLanguage String script) {
-        initScriptFile.text = script
-        initScriptFile
-    }
-
 
     protected TestFile getSettingsFile() {
         testDirectory.file(settingsFileName)
@@ -824,7 +762,7 @@ tmpdir is currently ${System.getProperty("java.io.tmpdir")}""")
         if (!enableProblemsApiCheck) {
             throw new IllegalStateException('Problems API check is not enabled')
         }
-        return buildOperationsFixture.all().collectMany {operation ->
+        return buildOperationsFixture.all().collectMany { operation ->
             operation.progress(DefaultProblemProgressDetails.class).collect {
                 def problemDetails = it.details.get("problem") as Map<String, Object>
                 return new ReceivedProblem(operation.id, problemDetails)
