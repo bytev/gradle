@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-package org.gradle.internal.service;
+package org.gradle.internal.exceptions.encryption;
+
+import org.gradle.api.GradleException;
+import org.gradle.internal.exceptions.Contextual;
+
+import javax.annotation.Nullable;
 
 /**
- * Wraps a single service instance. Implementations must be thread safe.
+ * This exception can be thrown when an error occurs during the setup or execution of encryption work.
  */
-interface Service {
+@Contextual
+public class EncryptionException extends GradleException {
 
-    String getDisplayName();
-
-    /**
-     * Returns the instance of the underlying service.
-     */
-    Object get();
-
-    <T> LazyService<T> asLazyService();
-
-    void requiredBy(ServiceProvider serviceProvider);
+    public EncryptionException(String message, @Nullable Throwable cause) {
+        super(message, cause);
+    }
 }

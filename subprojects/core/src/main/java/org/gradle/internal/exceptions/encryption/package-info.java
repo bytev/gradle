@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 the original author or authors.
+ * Copyright 2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,5 @@
  * limitations under the License.
  */
 
-package org.gradle.internal.service;
-
-/**
- * Wraps a single service instance. Implementations must be thread safe.
- */
-interface Service {
-
-    String getDisplayName();
-
-    /**
-     * Returns the instance of the underlying service.
-     */
-    Object get();
-
-    <T> LazyService<T> asLazyService();
-
-    void requiredBy(ServiceProvider serviceProvider);
-}
+@org.gradle.api.NonNullApi
+package org.gradle.internal.exceptions.encryption;
