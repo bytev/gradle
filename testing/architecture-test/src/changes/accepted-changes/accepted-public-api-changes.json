@@ -1,6 +1,74 @@
 {
     "acceptedApiChanges": [
         {
+            "type": "org.gradle.api.plugins.AbstractApplicationPlugin",
+            "member": "Class org.gradle.api.plugins.AbstractApplicationPlugin",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Interface has been added"
+            ]
+        },
+        {
+            "type": "org.gradle.api.plugins.AbstractApplicationPlugin",
+            "member": "Constructor org.gradle.api.plugins.AbstractApplicationPlugin()",
+            "acceptation": "Creating java-application-plugin",
+            "changes": []
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Constructor org.gradle.api.plugins.JavaApplicationPlugin()",
+            "acceptation": "Creating java-application-plugin",
+            "changes": []
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Field APPLICATION_GROUP",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Field is static and overrides another static field"
+            ]
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Field APPLICATION_PLUGIN_NAME",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Field is static and overrides another static field"
+            ]
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Field TASK_DIST_TAR_NAME",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Field is static and overrides another static field"
+            ]
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Field TASK_DIST_ZIP_NAME",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Field is static and overrides another static field"
+            ]
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Field TASK_RUN_NAME",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Field is static and overrides another static field"
+            ]
+        },
+        {
+            "type": "org.gradle.api.plugins.JavaApplicationPlugin",
+            "member": "Field TASK_START_SCRIPTS_NAME",
+            "acceptation": "Creating java-application-plugin",
+            "changes": [
+                "Field is static and overrides another static field"
+            ]
+        },
+        {
             "type": "org.gradle.api.tasks.compile.CompileOptions",
             "member": "Method org.gradle.api.tasks.compile.CompileOptions.debugOptions(org.gradle.api.Action)",
             "acceptation": "No need to incubate",
@@ -20,6 +88,14 @@
             "type": "org.gradle.api.tasks.compile.GroovyCompileOptions",
             "member": "Method org.gradle.api.tasks.compile.GroovyCompileOptions.forkOptions(org.gradle.api.Action)",
             "acceptation": "No need to incubate",
+            "changes": [
+                "Method added to public class"
+            ]
+        },
+        {
+            "type": "org.gradle.kotlin.dsl.BuiltinPluginIdExtensionsKt",
+            "member": "Method org.gradle.kotlin.dsl.BuiltinPluginIdExtensionsKt.getJava-application(org.gradle.plugin.use.PluginDependenciesSpec)",
+            "acceptation": "Creating java-application-plugin",
             "changes": [
                 "Method added to public class"
             ]
