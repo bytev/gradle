@@ -173,13 +173,17 @@ fun Project.createTestTask(name: String, executer: String, sourceSet: SourceSet,
             jvmArgumentProviders.add(SamplesBaseDirPropertyProvider(samplesDir))
         }
         setUpAgentIfNeeded(testType, executer)
-        disableIfNeeded(testType, executer)
+        disableIfNeeded(project.name, testType, executer)
     }
 
 
 internal
-fun IntegrationTest.disableIfNeeded(testType: TestType, executer: String) {
-    if (testType == TestType.INTEGRATION && executer == "isolatedProjects") {
+fun IntegrationTest.disableIfNeeded(projectName: String, testType: TestType, executer: String) {
+    if (
+        testType == TestType.INTEGRATION &&
+        executer == "isolatedProjects" &&
+        ignoreWithIsolatedProjectsExecuter.contains(projectName)
+    ) {
         isEnabled = false
     }
 }
@@ -195,8 +199,9 @@ fun IntegrationTest.setUpAgentIfNeeded(testType: TestType, executer: String) {
     }
 
     val integTestUseAgentSysPropName = "org.gradle.integtest.agent.allowed"
-    if (project.hasProperty(integTestUseAgentSysPropName)) {
-        val shouldUseAgent = (project.property(integTestUseAgentSysPropName) as? String).toBoolean()
+    val integtestAgentAllowed = project.providers.gradleProperty(integTestUseAgentSysPropName);
+    if (integtestAgentAllowed.isPresent) {
+        val shouldUseAgent = integtestAgentAllowed.get().toBoolean()
         systemProperties[integTestUseAgentSysPropName] = shouldUseAgent.toString()
     }
 }
@@ -205,16 +210,19 @@ fun IntegrationTest.setUpAgentIfNeeded(testType: TestType, executer: String) {
 private
 fun IntegrationTest.addDebugProperties() {
     // TODO Move magic property out
-    if (project.hasProperty("org.gradle.integtest.debug")) {
+    val integtestDebug = project.providers.gradleProperty("org.gradle.integtest.debug")
+    if (integtestDebug.isPresent) {
         systemProperties["org.gradle.integtest.debug"] = "true"
         testLogging.showStandardStreams = true
     }
     // TODO Move magic property out
-    if (project.hasProperty("org.gradle.integtest.verbose")) {
+    val integtestVerbose = project.providers.gradleProperty("org.gradle.integtest.verbose")
+    if (integtestVerbose.isPresent) {
         testLogging.showStandardStreams = true
     }
     // TODO Move magic property out
-    if (project.hasProperty("org.gradle.integtest.launcher.debug")) {
+    val integtestLauncherDebug = project.providers.gradleProperty("org.gradle.integtest.launcher.debug")
+    if (integtestLauncherDebug.isPresent) {
         systemProperties["org.gradle.integtest.launcher.debug"] = "true"
     }
 }
@@ -223,8 +231,9 @@ fun IntegrationTest.addDebugProperties() {
 fun DistributionTest.setSystemPropertiesOfTestJVM(defaultVersions: String) {
     // use -PtestVersions=all or -PtestVersions=1.2,1.3…
     val integTestVersionsSysProp = "org.gradle.integtest.versions"
-    if (project.hasProperty("testVersions")) {
-        systemProperties[integTestVersionsSysProp] = project.property("testVersions")
+    val testVersions = project.providers.gradleProperty("testVersions")
+    if (testVersions.isPresent) {
+        systemProperties[integTestVersionsSysProp] = testVersions.get()
     } else {
         systemProperties[integTestVersionsSysProp] = defaultVersions
     }
@@ -271,3 +280,180 @@ fun Project.resolver(name: String, libraryElements: String, extends: Configurati
         extendsFrom(extends)
     }
 }
+
+private val ignoreWithIsolatedProjectsExecuter = listOf(
+    "antlr",
+    "api-metadata",
+    "base-asm",
+    "base-ide-plugins",
+    "base-services",
+    "base-services-groovy",
+    "bean-serialization-services",
+    "build-cache",
+    "build-cache-base",
+    "build-cache-example-client",
+    "build-cache-http",
+    "build-cache-local",
+    "build-cache-packaging",
+    "build-cache-spi",
+    "build-configuration",
+    "build-events",
+    "build-operations",
+    "build-option",
+    "build-process-services",
+    "build-profile",
+    "build-state",
+    "cli",
+    "client-services",
+    "code-quality",
+    "composite-builds",
+    "concurrent",
+    "configuration-cache",
+    "configuration-cache-base",
+    "configuration-problems-base",
+    "core-api",
+    "core-kotlin-extensions",
+    "core-serialization-codecs",
+    "daemon-main",
+    "daemon-protocol",
+    "daemon-server",
+    "daemon-services",
+    "declarative-dsl-api",
+    "declarative-dsl-core",
+    "declarative-dsl-evaluator",
+    "declarative-dsl-provider",
+    "declarative-dsl-tooling-builders",
+    "declarative-dsl-tooling-models",
+    "dependency-management",
+    "dependency-management-serialization-codecs",
+    "diagnostics",
+    "distributions-basics",
+    "distributions-core",
+    "distributions-integ-tests",
+    "distributions-jvm",
+    "distributions-native",
+    "distributions-publishing",
+    "ear",
+    "encryption-services",
+    "enterprise-logging",
+    "enterprise-operations",
+    "enterprise-plugin-performance",
+    "enterprise-workers",
+    "execution",
+    "execution-e2e-tests",
+    "file-collections",
+    "file-temp",
+    "file-watching",
+    "files",
+    "flow-services",
+    "functional",
+    "gradle-cli",
+    "gradle-cli-main",
+    "graph-serialization",
+    "guava-serialization-codecs",
+    "hashing",
+    "ide",
+    "ide-native",
+    "ide-plugins",
+    "input-tracking",
+    "installation-beacon",
+    "instrumentation-agent",
+    "instrumentation-agent-services",
+    "instrumentation-declarations",
+    "instrumentation-reporting",
+    "integ-test",
+    "internal-build-reports",
+    "internal-instrumentation-api",
+    "internal-instrumentation-processor",
+    "internal-integ-testing",
+    "internal-performance-testing",
+    "io",
+    "ivy",
+    "jacoco",
+    "java-compiler-plugin",
+    "java-platform",
+    "jvm-services",
+    "kotlin-dsl",
+    "kotlin-dsl-integ-tests",
+    "kotlin-dsl-plugins",
+    "kotlin-dsl-provider-plugins",
+    "kotlin-dsl-tooling-builders",
+    "kotlin-dsl-tooling-models",
+    "language-groovy",
+    "language-java",
+    "language-jvm",
+    "language-native",
+    "launcher",
+    "logging",
+    "logging-api",
+    "maven",
+    "messaging",
+    "model-core",
+    "model-groovy",
+    "native",
+    "normalization-java",
+    "persistent-cache",
+    "platform-base",
+    "platform-jvm",
+    "platform-native",
+    "plugin-development",
+    "plugin-use",
+    "plugins-application",
+    "plugins-distribution",
+    "plugins-groovy",
+    "plugins-java-base",
+    "plugins-jvm-test-fixtures",
+    "plugins-jvm-test-suite",
+    "plugins-test-report-aggregation",
+    "plugins-version-catalog",
+    "precondition-tester",
+    "problems",
+    "problems-api",
+    "problems-rendering",
+    "process-memory-services",
+    "process-services",
+    "public-api-tests",
+    "publish",
+    "reporting",
+    "resources",
+    "resources-gcs",
+    "resources-http",
+    "resources-s3",
+    "resources-sftp",
+    "samples",
+    "scala",
+    "security",
+    "serialization",
+    "service-lookup",
+    "service-provider",
+    "service-registry-builder",
+    "service-registry-impl",
+    "signing",
+    "snapshots",
+    "soak",
+    "stdlib-java-extensions",
+    "stdlib-kotlin-extensions",
+    "stdlib-serialization-codecs",
+    "test-kit",
+    "test-suites-base",
+    "testing-base",
+    "testing-base-infrastructure",
+    "testing-junit-platform",
+    "testing-jvm",
+    "testing-jvm-infrastructure",
+    "testing-native",
+    "time",
+    "toolchains-jvm",
+    "toolchains-jvm-shared",
+    "tooling-api",
+    "tooling-api-builders",
+    "tooling-api-provider",
+    "tooling-native",
+    "unit-test-fixtures",
+    "version-control",
+    "war",
+    "worker-main",
+    "workers",
+    "wrapper-main",
+    "wrapper-shared",
+)

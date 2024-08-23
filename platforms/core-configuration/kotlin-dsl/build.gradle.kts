@@ -28,6 +28,8 @@ dependencies {
     api(libs.inject)
     api(libs.slf4jApi)
 
+    implementation(projects.baseAsm)
+    implementation(projects.instrumentationReporting)
     implementation(projects.buildOperations)
     implementation(projects.buildOption)
     implementation(projects.enterpriseLogging)
