@@ -26,6 +26,7 @@ Method <org.gradle.api.Project.getDependencyLocking()> does not have raw return 
 Method <org.gradle.api.Project.getDepth()> does not have raw return type (int) assignable to any of [Provider] in (Project.java:0)
 Method <org.gradle.api.Project.getDescription()> does not have raw return type (java.lang.String) assignable to any of [Property, MapProperty, ListProperty, SetProperty] in (Project.java:0)
 Method <org.gradle.api.Project.getDisplayName()> does not have raw return type (java.lang.String) assignable to any of [Provider] in (Project.java:0)
+Method <org.gradle.api.Project.getEnclosingBuild()> does not have raw return type (org.gradle.api.build.ProjectBuild) assignable to any of [Provider] in (Project.java:0)
 Method <org.gradle.api.Project.getExtensions()> does not have raw return type (org.gradle.api.plugins.ExtensionContainer) assignable to any of [Provider] in (Project.java:0)
 Method <org.gradle.api.Project.getGradle()> does not have raw return type (org.gradle.api.invocation.Gradle) assignable to any of [Provider] in (Project.java:0)
 Method <org.gradle.api.Project.getGroup()> does not have raw return type (java.lang.Object) assignable to any of [Property, MapProperty, ListProperty, SetProperty] in (Project.java:0)
