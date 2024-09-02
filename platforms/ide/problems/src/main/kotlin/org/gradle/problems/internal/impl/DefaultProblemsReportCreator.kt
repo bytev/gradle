@@ -64,7 +64,7 @@ class DefaultProblemsReportCreator(
     }
 
     override fun report(reportDir: File, validationFailures: ProblemReporter.ProblemConsumer) {
-        report.writeReportFileTo(reportDir, object : JsonSource {
+        report.writeReportFileTo(reportDir.resolve("reports/problems"), object : JsonSource {
             override fun writeToJson(jsonWriter: JsonWriter) {
                 with(jsonWriter) {
                     property("problemsReport") {
@@ -141,7 +141,7 @@ class JsonProblemWriter(private val problem: Problem, private val failureDecorat
                 val solutions = problem.solutions
                 if (solutions.isNotEmpty()) {
                     property("solutions") {
-                        jsonList(solutions.iterator()) { solution ->
+                        jsonList(solutions) { solution ->
                             writeStructuredMessage(
                                 StructuredMessage.Builder()
                                     .text(solution).build()

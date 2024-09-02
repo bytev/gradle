@@ -49,7 +49,27 @@ The default `kotlin-test` version in JVM test suites has been upgraded to 2.0.10
 
 Kotlin DSL scripts are still compiled with Kotlin language version set to 1.8 for backwards compatibility.
 
+==== Gradle daemon JVM configuration via toolchain
+
+The type of the property `UpdateDaemonJvm.jvmVersion` is now `Property<JavaLanguageVersion>`.
+
+If you configured the task in a build script, you will need to replace:
+
+`jvmVersion = JavaVersion.VERSION_17`
+
+with:
+
+`jvmVersion = JavaLanguageVersion.of(17)`
+
+There is no impact when using the CLI options to configure which JVM version to use for the Gradle Daemon.
+
 === Deprecations
+
+[[deprecated_fork_options_java_home]]
+==== Deprecated JavaHome property of ForkOptions
+The link:{javadocPath}/org/gradle/api/tasks/compile/ForkOptions.html#getJavaHome()-[javaHome] property of the `ForkOptions` type has been deprecated and will be removed in Gradle 9.0.
+
+Use <<toolchains.adoc#sec:consuming,JVM Toolchains>>, or the link:{javadocPath}/org/gradle/api/tasks/compile/ForkOptions.html#getExecutable()-[executable] property instead.
 
 [[mutating_buildscript_configurations]]
 ==== Deprecated mutating buildscript configurations
@@ -90,6 +110,7 @@ val myConfig = buildscript.configurations.detachedConfiguration(
 val files = myConfig.files
 ----
 
+[[adding_to_configuration_container]]
 ==== Deprecated manually adding to configuration container
 
 Starting in Gradle 9.0, manually adding configuration instances to a configuration container will result in an error.
@@ -102,6 +123,7 @@ Calling the following methods on link:{javadocPath}/org/gradle/api/artifacts/Con
 - addLater(Provider)
 - addAllLater(Provider)
 
+[[deprecated_abstract_options]]
 ==== Deprecated `AbstractOptions`
 
 The `AbstractOptions` class has been deprecated and will be removed in Gradle 9.0.
@@ -133,6 +155,7 @@ tasks.withType(JavaCompile) {
 }
 ----
 
+[[deprecated_content_equals]]
 ==== Deprecated `Dependency#contentEquals(Dependency)`
 
 The link:{javadocPath}/org/gradle/api/artifacts/Dependency.html#contentEquals(org.gradle.api.artifacts.Dependency)[Dependency#contentEquals(Dependency)] method has been deprecated and will be removed in Gradle 9.0.
