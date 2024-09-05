@@ -35,12 +35,20 @@ dependencies {
     api(projects.serviceProvider)
     api(projects.persistentCache)
     api(projects.stdlibJavaExtensions)
+    api(projects.time)
+    api(projects.modelCore)
+    api(projects.resources)
+    api(projects.resourcesHttp)
+    api(projects.toolingApi)
+    api(projects.toolchainsJvmShared)
 
     // The client should not depend on core or core-api or projects that depend on these.
     // However, these project still contains some types that are shared between the client and daemon.
     api(projects.core)
     api(projects.coreApi)
     api(projects.fileCollections)
+    api(projects.fileTemp)
+    api(projects.files)
 
     api(libs.jsr305)
 
@@ -53,9 +61,10 @@ dependencies {
     implementation(projects.buildProcessServices)
     implementation(projects.instrumentationAgentServices)
     implementation(projects.loggingApi)
-    implementation(projects.time)
-    implementation(projects.toolchainsJvmShared)
     implementation(projects.io)
+    implementation(projects.buildConfiguration)
+    implementation(projects.dependencyManagement)
+    implementation(projects.hashing)
 
     testImplementation(testFixtures(projects.core)) {
         because("ConcurrentSpecification")
