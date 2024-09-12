@@ -1,6 +1,5 @@
 plugins {
     id("gradlebuild.distribution.api-java")
-    id("gradlebuild.instrumented-java-project")
 }
 
 description = "Public and internal 'core' Gradle APIs with implementation"
@@ -87,6 +86,7 @@ dependencies {
     api(projects.buildCacheSpi)
     api(projects.buildOperations)
     api(projects.buildOption)
+    api(projects.classloading)
     api(projects.cli)
     api(projects.coreApi)
     api(projects.declarativeDslApi)
@@ -128,7 +128,6 @@ dependencies {
 
     implementation(projects.buildOperationsTrace)
     implementation(projects.io)
-    implementation(projects.inputTracking)
     implementation(projects.modelGroovy)
     implementation(projects.serviceRegistryBuilder)
     implementation(projects.problemsRendering)
@@ -142,7 +141,6 @@ dependencies {
     implementation(libs.errorProneAnnotations)
     implementation(libs.fastutil)
     implementation(libs.groovyAnt)
-    implementation(libs.groovyJson)
     implementation(libs.groovyXml)
     implementation(libs.slf4jApi)
     implementation(libs.tomlj) {
@@ -169,6 +167,7 @@ dependencies {
     // TODO investigate why we depend on SSHD as a platform for internal-integ-testing
     runtimeOnly(libs.antJunit)
 
+    testImplementation(projects.inputTracking)
     testImplementation(projects.platformJvm)
     testImplementation(projects.platformNative)
     testImplementation(projects.testingBase)
