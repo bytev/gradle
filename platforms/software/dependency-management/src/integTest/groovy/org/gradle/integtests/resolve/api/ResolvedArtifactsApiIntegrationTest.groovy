@@ -127,6 +127,11 @@ task show {
 allprojects {
     configurations.compile.attributes.attribute(usage, 'compile')
 }
+configurations {
+    compile {
+        attributes.attribute(Attribute.of('other', String), 'select')
+    }
+}
 dependencies {
     compile project(':a')
 }
@@ -139,6 +144,7 @@ project(':a') {
                     var1 {
                         artifact file('a1.jar')
                         attributes.attribute(flavor, 'one')
+                        attributes.attribute(Attribute.of('other', String), 'select')
                     }
                 }
             }
@@ -156,6 +162,7 @@ project(':b') {
                     var1 {
                         artifact file('b2.jar')
                         attributes.attribute(flavor, 'two')
+                        attributes.attribute(Attribute.of('other', String), 'select')
                     }
                 }
             }
@@ -183,7 +190,7 @@ task show {
         outputContains("files: [a1.jar, b2.jar]")
         outputContains("ids: [a1.jar (project :a), b2.jar (project :b)]")
         outputContains("components: [project :a, project :b]")
-        outputContains("variants: [{artifactType=jar, buildType=debug, flavor=one, usage=compile}, {artifactType=jar, flavor=two, usage=compile}]")
+        outputContains("variants: [{artifactType=jar, buildType=debug, flavor=one, other=select, usage=compile}, {artifactType=jar, flavor=two, other=select, usage=compile}]")
 
         where:
         expression                                                    | _
@@ -408,6 +415,12 @@ allprojects {
     configurations.compile.attributes.attribute(usage, 'compile')
 }
 
+configurations {
+    compile {
+        attributes.attribute(Attribute.of('other', String), 'select')
+    }
+}
+
 dependencies {
     compile project(':a')
 }
@@ -419,14 +432,18 @@ project(':a') {
         compile {
             attributes.attribute(buildType, 'debug')
             outgoing {
+                attributes.attribute(flavor, 'zero')
+                attributes.attribute(Attribute.of('mismatch', String), 'mismatch')
                 variants {
                     var1 {
                         artifact oneJar
                         attributes.attribute(flavor, 'one')
+                        attributes.attribute(Attribute.of('other', String), 'select')
                     }
                     var2 {
                         artifact twoJar
                         attributes.attribute(flavor, 'two')
+                        attributes.attribute(Attribute.of('other', String), 'select')
                     }
                 }
             }
@@ -446,10 +463,12 @@ project(':b') {
                     var1 {
                         artifact oneJar
                         attributes.attribute(flavor, 'one')
+                        attributes.attribute(Attribute.of('other', String), 'select')
                     }
                     var2 {
                         artifact twoJar
                         attributes.attribute(flavor, 'two')
+                        attributes.attribute(Attribute.of('other', String), 'select')
                     }
                 }
             }
@@ -470,13 +489,19 @@ task show {
         fails 'show'
 
         then:
-        failure.assertHasCause("""The consumer was configured to find attribute 'usage' with value 'compile'. However we cannot choose between the following variants of project :a:
-  - Configuration ':a:compile' variant var1 declares attribute 'usage' with value 'compile':
+        failure.assertHasCause("""The consumer was configured to find attribute 'other' with value 'select', attribute 'usage' with value 'compile'. However we cannot choose between the following variants of project :a:
+  - Configuration ':a:compile' declares attribute 'usage' with value 'compile':
+      - Unmatched attributes:
+          - Doesn't say anything about other (required 'select')
+          - Provides buildType 'debug' but the consumer didn't ask for it
+          - Provides flavor 'zero' but the consumer didn't ask for it
+          - Provides mismatch 'mismatch' but the consumer didn't ask for it
+  - Configuration ':a:compile' variant var1 declares attribute 'other' with value 'select', attribute 'usage' with value 'compile':
       - Unmatched attributes:
           - Provides artifactType 'jar' but the consumer didn't ask for it
           - Provides buildType 'debug' but the consumer didn't ask for it
           - Provides flavor 'one' but the consumer didn't ask for it
-  - Configuration ':a:compile' variant var2 declares attribute 'usage' with value 'compile':
+  - Configuration ':a:compile' variant var2 declares attribute 'other' with value 'select', attribute 'usage' with value 'compile':
       - Unmatched attributes:
           - Provides artifactType 'jar' but the consumer didn't ask for it
           - Provides buildType 'debug' but the consumer didn't ask for it
@@ -526,13 +551,9 @@ project(':a') {
     configurations {
         compile {
             attributes.attribute(buildType, 'debug')
+            attributes.attribute(flavor, 'one')
             outgoing {
-                variants {
-                    var1 {
-                        artifact file('a1.jar')
-                        attributes.attribute(flavor, 'one')
-                    }
-                }
+                artifact file('a1.jar')
             }
         }
     }
@@ -853,9 +874,11 @@ dependencies {
 configurations.compile.attributes.attribute(usage, "compile")
 
 project(':a') {
-    configurations.default.outgoing.variants {
-        v1 { }
-        v2 { }
+    configurations.default {
+        outgoing.variants {
+            v1 { }
+            v2 { }
+        }
     }
 }
 
@@ -902,6 +925,9 @@ Searched in the following locations:
     ${m1.artifact.uri}""")
         outputContains("failure 5: Could not download broken-artifact-1.0.jar (org:broken-artifact:1.0)")
         outputContains("""failure 6: The consumer was configured to find attribute 'usage' with value 'compile'. However we cannot choose between the following variants of project :a:
+  - Configuration ':a:default':
+      - Unmatched attribute:
+          - Doesn't say anything about usage (required 'compile')
   - Configuration ':a:default' variant v1:
       - Unmatched attribute:
           - Doesn't say anything about usage (required 'compile')
@@ -962,7 +988,7 @@ task resolveLenient {
         assert lenientView.files.collect { it.name } == resolvedFiles
         assert lenientView.artifacts.collect { it.file.name } == resolvedFiles
         assert lenientView.artifacts.artifactFiles.collect { it.name } == resolvedFiles
-        assert lenientView.artifacts.failures.size() == 3
+        assert lenientView.artifacts.failures.size() == 2
     }
 }
 """

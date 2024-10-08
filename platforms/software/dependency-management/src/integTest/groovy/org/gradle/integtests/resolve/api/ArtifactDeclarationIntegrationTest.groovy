@@ -273,6 +273,7 @@ classes.attributes.keySet().collect { it.name } == ['usage', 'format']
                 configurations {
                     compile {
                         outgoing {
+                            attributes.attribute(Attribute.of('usage', String), 'other')
                             variants {
                                 classes {
                                     artifact(file('classes')) {

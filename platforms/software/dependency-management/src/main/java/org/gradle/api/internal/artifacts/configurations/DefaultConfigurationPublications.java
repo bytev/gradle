@@ -93,10 +93,26 @@ public class DefaultConfigurationPublications implements ConfigurationPublicatio
 
     public void collectVariants(ConfigurationInternal.VariantVisitor visitor) {
         PublishArtifactSet allArtifactSet = allArtifacts.getPublishArtifactSet();
-        if (variants == null || variants.isEmpty() || !allArtifactSet.isEmpty()) {
-            visitor.visitOwnVariant(displayName, attributes.asImmutable(), allArtifactSet);
-        }
-        if (variants != null) {
+        boolean secondaryVariantsExist = variants != null && !variants.isEmpty();
+
+// TODO: Re-enable this deprecation warning once AGP can adapt
+//        // If there are no artifacts in the primary variant, but there are secondary variants, something is wrong.
+//        // We don't want to allow a secondary variant ("precomputed transform") to be the only source of artifacts,
+//        // as that would conceptually represent a transform from nothing -> something.  Builds should just define
+//        // a new primary variant instead.
+//        if (allArtifactSet.isEmpty() && secondaryVariantsExist) {
+//            DeprecationLogger.deprecateBehaviour("The " + displayName + " has no artifacts and thus should not define any secondary variants.")
+//                .withAdvice("Secondary variant(s): " + variants.stream().map(v -> "'" + v.getName() + "'").collect(Collectors.joining(", ")) + " should be made directly consumable.")
+//                .willBeRemovedInGradle9()
+//                .withUpgradeGuideSection(8, "variants_with_no_artifacts")
+//                .nagUser();
+//        }
+
+        // Always visit the primary variant
+        visitor.visitOwnVariant(displayName, attributes.asImmutable(), allArtifactSet);
+
+        // If secondary variants exist, visit them too
+        if (secondaryVariantsExist) {
             for (ConfigurationVariantInternal variant : variants.withType(ConfigurationVariantInternal.class)) {
                 visitor.visitChildVariant(variant.getName(), variant.getDisplayName(), variant.getAttributes().asImmutable(), variant.getArtifacts());
             }

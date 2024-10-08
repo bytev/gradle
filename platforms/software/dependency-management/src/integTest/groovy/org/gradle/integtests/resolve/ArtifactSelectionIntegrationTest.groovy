@@ -593,9 +593,9 @@ task show {
         run 'show'
 
         then:
-        outputContains("files: [test-lib.jar, transformed-a1.jar, transformed-b2.jar, test-1.0.jar]")
-        outputContains("components: [test-lib.jar, project :lib, project :ui, org:test:1.0]")
-        outputContains("variants: [{artifactType=jar}, {artifactType=jar, buildType=debug, flavor=one, usage=transformed}, {artifactType=jar, usage=transformed}, {artifactType=jar, org.gradle.status=integration}]")
+        outputContains("files: [test-lib.jar, transformed-b2.jar, test-1.0.jar]")
+        outputContains("components: [test-lib.jar, project :ui, org:test:1.0]")
+        outputContains("variants: [{artifactType=jar}, {artifactType=jar, usage=transformed}, {artifactType=jar, org.gradle.status=integration}]")
     }
 
     def "can query the content of view before task graph is calculated"() {

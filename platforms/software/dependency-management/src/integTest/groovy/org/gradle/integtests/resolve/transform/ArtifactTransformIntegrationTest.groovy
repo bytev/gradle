@@ -475,11 +475,14 @@ class ArtifactTransformIntegrationTest extends AbstractHttpDependencyResolutionT
                 }
 
                 configurations {
-                    compile.outgoing.variants {
-                        files {
-                            attributes.attribute(Attribute.of('artifactType', String), 'jar')
-                            artifact jar1
-                            artifact zip1
+                    compile {
+                        attributes.attribute(Attribute.of('artifactType', String), 'mismatch')
+                        outgoing.variants {
+                            files {
+                                attributes.attribute(Attribute.of('artifactType', String), 'jar')
+                                artifact jar1
+                                artifact zip1
+                            }
                         }
                     }
                 }
@@ -640,16 +643,19 @@ class ArtifactTransformIntegrationTest extends AbstractHttpDependencyResolutionT
                 }
 
                 configurations {
-                    compile.outgoing.variants {
-                        java7 {
-                            attributes.attribute(Attribute.of('javaVersion', String), '7')
-                            attributes.attribute(Attribute.of('color', String), 'green')
-                            artifact jar1
-                        }
-                        java8 {
-                            attributes.attribute(Attribute.of('javaVersion', String), '8')
-                            attributes.attribute(Attribute.of('color', String), 'red')
-                            artifact jar2
+                    compile {
+                        attributes.attribute(Attribute.of('color', String), 'mismatch')
+                        outgoing.variants {
+                            java7 {
+                                attributes.attribute(Attribute.of('javaVersion', String), '7')
+                                attributes.attribute(Attribute.of('color', String), 'green')
+                                artifact jar1
+                            }
+                            java8 {
+                                attributes.attribute(Attribute.of('javaVersion', String), '8')
+                                attributes.attribute(Attribute.of('color', String), 'red')
+                                artifact jar2
+                            }
                         }
                     }
                 }
@@ -744,16 +750,19 @@ class ArtifactTransformIntegrationTest extends AbstractHttpDependencyResolutionT
                 }
 
                 configurations {
-                    compile.outgoing.variants {
-                        java7 {
-                            attributes.attribute(Attribute.of('javaVersion', String), '7')
-                            attributes.attribute(Attribute.of('color', String), 'green')
-                            artifact jar1
-                        }
-                        java8 {
-                            attributes.attribute(Attribute.of('javaVersion', String), '8')
-                            attributes.attribute(Attribute.of('color', String), 'red')
-                            artifact jar2
+                    compile {
+                        attributes.attribute(Attribute.of('color', String), 'mismatch')
+                        outgoing.variants {
+                            java7 {
+                                attributes.attribute(Attribute.of('javaVersion', String), '7')
+                                attributes.attribute(Attribute.of('color', String), 'green')
+                                artifact jar1
+                            }
+                            java8 {
+                                attributes.attribute(Attribute.of('javaVersion', String), '8')
+                                attributes.attribute(Attribute.of('color', String), 'red')
+                                artifact jar2
+                            }
                         }
                     }
                 }
@@ -1062,19 +1071,22 @@ class ArtifactTransformIntegrationTest extends AbstractHttpDependencyResolutionT
                     archiveFileName = 'lib.jar'
                 }
 
-                configurations.compile.outgoing.variants{
-                    primary {
-                        attributes {
-                            attribute(artifactType, "jar")
-                            attribute(extraAttribute, "preferred")
+                configurations.compile {
+                    attributes.attribute(Attribute.of('artifactType', String), 'mismatch')
+                    outgoing.variants{
+                        primary {
+                            attributes {
+                                attribute(artifactType, "jar")
+                                attribute(extraAttribute, "preferred")
+                            }
+                            artifact jar
                         }
-                        artifact jar
-                    }
-                    secondary {
-                        attributes {
-                            attribute(artifactType, "intermediate")
+                        secondary {
+                            attributes {
+                                attribute(artifactType, "intermediate")
+                            }
+                            artifact jar
                         }
-                        artifact jar
                     }
                 }
             }
@@ -1325,21 +1337,24 @@ Found the following transforms:
                 }
 
                 configurations {
-                    compile.outgoing.variants {
-                        variant1 {
-                            attributes.attribute(buildType, 'release')
-                            attributes.attribute(flavor, 'free')
-                            artifact jar1
-                        }
-                        variant2 {
-                            attributes.attribute(buildType, 'release')
-                            attributes.attribute(flavor, 'paid')
-                            artifact jar1
-                        }
-                        variant3 {
-                            attributes.attribute(buildType, 'debug')
-                            attributes.attribute(flavor, 'free')
-                            artifact jar1
+                    compile {
+                        outgoing.artifact file('dummy.txt')
+                        outgoing.variants {
+                            variant1 {
+                                attributes.attribute(buildType, 'release')
+                                attributes.attribute(flavor, 'free')
+                                artifact jar1
+                            }
+                            variant2 {
+                                attributes.attribute(buildType, 'release')
+                                attributes.attribute(flavor, 'paid')
+                                artifact jar1
+                            }
+                            variant3 {
+                                attributes.attribute(buildType, 'debug')
+                                attributes.attribute(flavor, 'free')
+                                artifact jar1
+                            }
                         }
                     }
                 }
