@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.asmCommons)
     implementation(libs.commonsIo)
     implementation(libs.commonsLang)
+    implementation(libs.commonsLang3)
     implementation(libs.fastutil)
     implementation(libs.gson)
     implementation(libs.httpcore)

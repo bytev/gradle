@@ -16,71 +16,154 @@
 
 package org.gradle.api.internal.artifacts.transform;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Interner;
+import com.google.common.collect.Interners;
+import org.apache.commons.lang3.function.TriFunction;
 import org.gradle.api.internal.artifacts.TransformRegistration;
-import org.gradle.api.internal.artifacts.VariantTransformRegistry;
 import org.gradle.api.internal.artifacts.ivyservice.resolveengine.artifact.ResolvedVariant;
-import org.gradle.api.internal.attributes.AttributeSchemaServices;
-import org.gradle.api.internal.attributes.AttributesSchemaInternal;
 import org.gradle.api.internal.attributes.ImmutableAttributes;
 import org.gradle.api.internal.attributes.ImmutableAttributesFactory;
-import org.gradle.api.internal.attributes.immutable.ImmutableAttributesSchema;
 import org.gradle.api.internal.attributes.matching.AttributeMatcher;
 import org.gradle.internal.collections.ImmutableFilteredList;
-import org.gradle.internal.lazy.Lazy;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 /**
  * Finds all the variants that can be created from a given set of producer variants using
  * the consumer's variant transforms. Transforms can be chained. If multiple
  * chains can lead to the same outcome, the shortest paths are selected.
- *
- * Caches the results, as often the same request is made for many components in a
- * dependency graph.
+ * <p>
+ * This class is scoped to a given {@link AttributeMatcher} instance. This class may be used
+ * by multiple projects and/or dependency resolution instances, each with different
+ * registered transform sets, as long as they share a common attribute matcher.
+ * <p>
+ * Results are cached, as often the same request is made for many components in a
+ * dependency graph. The cache is independent of the source variant and registered
+ * transform instances by storing the index of the input parameters as the cache key
+ * and mapping input and output indices to the actual instances.
  */
 public class ConsumerProvidedVariantFinder {
-    private final VariantTransformRegistry variantTransforms;
+
+    private final AttributeMatcher matcher;
     private final ImmutableAttributesFactory attributesFactory;
-    private final CachingAttributeMatcher matcher;
     private final TransformCache transformCache;
 
+    private final Interner<CachedTransforms> internedTransforms = Interners.newStrongInterner();
+
     public ConsumerProvidedVariantFinder(
-        VariantTransformRegistry variantTransforms,
-        AttributesSchemaInternal schema,
-        ImmutableAttributesFactory attributesFactory,
-        AttributeSchemaServices attributeSchemaServices
+        AttributeMatcher matcher,
+        ImmutableAttributesFactory attributesFactory
     ) {
-        this.variantTransforms = variantTransforms;
+        this.matcher = matcher;
         this.attributesFactory = attributesFactory;
-        this.matcher = new CachingAttributeMatcher(() -> {
-            // TODO: This is incorrect. We fail to merge the consumer schema with the producer schema
-            // and therefore we miss producer rules when matching transforms.
-            // Instead, this class should be refactored to accept a matcher as a parameter,
-            // where the matcher has already been created with the consumer and producer schema.
-            ImmutableAttributesSchema immutable = attributeSchemaServices.getSchemaFactory().create(schema);
-            return attributeSchemaServices.getMatcher(immutable, ImmutableAttributesSchema.EMPTY);
-        });
         this.transformCache = new TransformCache(this::doFindTransformedVariants);
     }
 
+    public CachedTransforms cacheRegisteredTransforms(ImmutableList<TransformRegistration> transforms) {
+        List<ConsumerProvidedVariantFinder.CachedTransform> cachedTransforms = new ArrayList<>(transforms.size());
+        for (int i = 0; i < transforms.size(); i++) {
+            TransformRegistration registration = transforms.get(i);
+            cachedTransforms.add(new ConsumerProvidedVariantFinder.CachedTransform(
+                i,
+                registration.getFrom(),
+                registration.getTo()
+            ));
+        }
+
+        return internedTransforms.intern(new ConsumerProvidedVariantFinder.CachedTransforms(cachedTransforms));
+    }
+
     /**
-     * Executes the transform chain detection algorithm given a set of producer variants and the requested
-     * attributes. Only the transform chains of the shortest depth are returned, and all results are
-     * guaranteed to have the same depth.
+     * Executes the transform chain detection algorithm given a set of registered transforms,
+     * producer variants and the requested attributes. Only the transform chains of the shortest
+     * depth are returned, and all results are guaranteed to have the same depth.
      *
+     * @param variantTransforms The transforms to select from.
      * @param sources The set of producer variants.
      * @param requested The requested attributes.
      *
      * @return A collection of variant chains which, if applied to the corresponding source variant, will produce a
      *      variant compatible with the requested attributes.
      */
-    public List<TransformedVariant> findTransformedVariants(List<ResolvedVariant> sources, ImmutableAttributes requested) {
-        return transformCache.query(sources, requested);
+    public List<CachedVariant> findTransformedVariants(
+        ImmutableAttributes requested,
+        CachedTransforms variantTransforms,
+        List<ResolvedVariant> sources
+    ) {
+        return transformCache.query(requested, variantTransforms, sources);
+    }
+
+    static class CachedTransforms {
+        private final List<CachedTransform> transforms;
+        private final int hashCode;
+
+        public CachedTransforms(List<CachedTransform> transforms) {
+            this.transforms = transforms;
+            this.hashCode = transforms.hashCode();
+        }
+
+        public List<CachedTransform> asList() {
+            return transforms;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            CachedTransforms that = (CachedTransforms) o;
+            return transforms.equals(that.transforms);
+        }
+
+        @Override
+        public int hashCode() {
+            return hashCode;
+        }
+    }
+
+    /**
+     * Represents a transform step in the transform chain detection algorithm. This class is used in the cached
+     * result and only refers to the index of the source transform in the original registered transform list.
+     */
+    static class CachedTransform {
+        private final int registrationIndex;
+        private final ImmutableAttributes from;
+        private final ImmutableAttributes to;
+        public CachedTransform(int registrationIndex, ImmutableAttributes from, ImmutableAttributes to) {
+            this.registrationIndex = registrationIndex;
+            this.from = from;
+            this.to = to;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            CachedTransform that = (CachedTransform) o;
+            return registrationIndex == that.registrationIndex &&
+                from.equals(that.from) &&
+                to.equals(that.to);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = registrationIndex;
+            result = 31 * result + from.hashCode();
+            result = 31 * result + to.hashCode();
+            return result;
+        }
     }
 
     /**
@@ -88,8 +171,8 @@ public class ConsumerProvidedVariantFinder {
      */
     private static class ChainNode {
         final ChainNode next;
-        final TransformRegistration transform;
-        public ChainNode(@Nullable ChainNode next, TransformRegistration transform) {
+        final CachedTransform transform;
+        public ChainNode(@Nullable ChainNode next, CachedTransform transform) {
             this.next = next;
             this.transform = transform;
         }
@@ -102,7 +185,7 @@ public class ConsumerProvidedVariantFinder {
     private static class ChainState {
         final ChainNode chain;
         final ImmutableAttributes requested;
-        final ImmutableFilteredList<TransformRegistration> transforms;
+        final ImmutableFilteredList<CachedTransform> transforms;
 
         /**
          * @param chain The candidate transform chain.
@@ -110,7 +193,7 @@ public class ConsumerProvidedVariantFinder {
          *      original user-requested attribute set after {@code chain} is applied to that previous variant.
          * @param transforms The remaining transforms which may be prepended to {@code chain} to produce a solution.
          */
-        public ChainState(@Nullable ChainNode chain, ImmutableAttributes requested, ImmutableFilteredList<TransformRegistration> transforms) {
+        public ChainState(@Nullable ChainNode chain, ImmutableAttributes requested, ImmutableFilteredList<CachedTransform> transforms) {
             this.chain = chain;
             this.requested = requested;
             this.transforms = transforms;
@@ -122,10 +205,10 @@ public class ConsumerProvidedVariantFinder {
      * list instead of an actual variant itself, so that this result can be cached and used for distinct variant sets
      * that otherwise share the same attributes.
      */
-    private static class CachedVariant {
-        private final int sourceIndex;
-        private final VariantDefinition chain;
-        public CachedVariant(int sourceIndex, VariantDefinition chain) {
+    static class CachedVariant {
+        final int sourceIndex;
+        final List<Integer> chain;
+        public CachedVariant(int sourceIndex, List<Integer> chain) {
             this.sourceIndex = sourceIndex;
             this.chain = chain;
         }
@@ -138,27 +221,30 @@ public class ConsumerProvidedVariantFinder {
      * we have found a solution. Otherwise, if no solutions are found at this depth, we run the search at the next depth, with all
      * candidate transforms linked to the previous level's chains.
      */
-    private List<CachedVariant> doFindTransformedVariants(List<ImmutableAttributes> sources, ImmutableAttributes requested) {
+    private List<CachedVariant> doFindTransformedVariants(
+        ImmutableAttributes requested,
+        CachedTransforms transforms,
+        List<ImmutableAttributes> sources
+    ) {
         List<ChainState> toProcess = new ArrayList<>();
         List<ChainState> nextDepth = new ArrayList<>();
-        toProcess.add(new ChainState(null, requested, ImmutableFilteredList.allOf(variantTransforms.getRegistrations())));
+        toProcess.add(new ChainState(null, requested, ImmutableFilteredList.allOf(transforms.asList())));
 
         List<CachedVariant> results = new ArrayList<>(1);
         while (results.isEmpty() && !toProcess.isEmpty()) {
             for (ChainState state : toProcess) {
                 // The set of transforms which could potentially produce a variant compatible with `requested`.
-                ImmutableFilteredList<TransformRegistration> candidates =
-                    state.transforms.matching(transform -> matcher.isMatchingCandidate(transform.getTo(), state.requested));
+                ImmutableFilteredList<CachedTransform> candidates =
+                    state.transforms.matching(transform -> matcher.isMatchingCandidate(transform.to, state.requested));
 
                 // For each candidate, attempt to find a source variant that the transform can use as its root.
-                for (TransformRegistration candidate : candidates) {
+                for (CachedTransform candidate : candidates) {
                     for (int i = 0; i < sources.size(); i++) {
                         ImmutableAttributes sourceAttrs = sources.get(i);
-                        if (matcher.isMatchingCandidate(sourceAttrs, candidate.getFrom())) {
-                            ImmutableAttributes rootAttrs = attributesFactory.concat(sourceAttrs, candidate.getTo());
+                        if (matcher.isMatchingCandidate(sourceAttrs, candidate.from)) {
+                            ImmutableAttributes rootAttrs = attributesFactory.concat(sourceAttrs, candidate.to);
                             if (matcher.isMatchingCandidate(rootAttrs, state.requested)) {
-                                DefaultVariantDefinition rootTransformedVariant = new DefaultVariantDefinition(null, rootAttrs, candidate.getTransformStep());
-                                VariantDefinition variantChain = createVariantChain(state.chain, rootTransformedVariant);
+                                List<Integer> variantChain = extractTransformIndices(candidate, state.chain);
                                 results.add(new CachedVariant(i, variantChain));
                             }
                         }
@@ -172,10 +258,10 @@ public class ConsumerProvidedVariantFinder {
 
                 // Construct new states for processing at the next depth in case we can't find any solutions at this depth.
                 for (int i = 0; i < candidates.size(); i++) {
-                    TransformRegistration candidate = candidates.get(i);
+                    CachedTransform candidate = candidates.get(i);
                     nextDepth.add(new ChainState(
                         new ChainNode(state.chain, candidate),
-                        attributesFactory.concat(state.requested, candidate.getFrom()),
+                        attributesFactory.concat(state.requested, candidate.from),
                         state.transforms.withoutIndexFrom(i, candidates)
                     ));
                 }
@@ -191,66 +277,101 @@ public class ConsumerProvidedVariantFinder {
     }
 
     /**
-     * Constructs a complete cacheable variant chain given a root transformed variant and the chain of variants
-     * to apply to that root variant.
+     * Constructs a complete cacheable variant chain given an initial transform and the chain of transforms
+     * to apply after it.
      *
-     * @param stateChain The transform chain from the search state to apply to the root transformed variant.
-     * @param root The root variant to apply the chain to.
+     * @param first The first transform to apply to the source variant.
+     * @param rest The transform chain from the search state to apply to after the first transform.
      *
-     * @return A variant chain representing the final transformed variant.
+     * @return A list of transform indices, where each index corresponds to a transform registration in the original
+     *      transform list. The indices are ordered such that the first index corresponds to the first transform to
+     *      apply to the source variant.
      */
-    private VariantDefinition createVariantChain(final ChainNode stateChain, DefaultVariantDefinition root) {
-        ChainNode node = stateChain;
-        DefaultVariantDefinition last = root;
+    private static List<Integer> extractTransformIndices(CachedTransform first, @Nullable ChainNode rest) {
+        List<Integer> indices = new ArrayList<>();
+        indices.add(first.registrationIndex);
+
+        ChainNode node = rest;
         while (node != null) {
-            last = new DefaultVariantDefinition(
-                last,
-                attributesFactory.concat(last.getTargetAttributes(), node.transform.getTo()),
-                node.transform.getTransformStep()
-            );
+            indices.add(node.transform.registrationIndex);
             node = node.next;
         }
-        return last;
+
+        return indices;
     }
 
     /**
      * Caches calls to the transform chain selection algorithm. The cached results are stored in
-     * a variant-independent manner, such that only the attributes of the input variants are cached.
-     * This way, if multiple calls are made with different variants but those variants have the same
-     * attributes, the cached results may be used.
+     * a transform-independent and variant-independent manner, such that only the indices of the
+     * registered transforms and input variants are cached. This way, if multiple calls are made
+     * with different transforms or variants, but they have the same attributes, the cached results
+     * may be used.
      */
     private static class TransformCache {
-        private final ConcurrentHashMap<CacheKey, List<CachedVariant>> cache = new ConcurrentHashMap<>();
-        private final BiFunction<List<ImmutableAttributes>, ImmutableAttributes, List<CachedVariant>> action;
 
-        public TransformCache(BiFunction<List<ImmutableAttributes>, ImmutableAttributes, List<CachedVariant>> action) {
+        private final TriFunction<ImmutableAttributes, CachedTransforms, List<ImmutableAttributes>, List<CachedVariant>> action;
+
+        private final ConcurrentHashMap<CacheKey, List<CachedVariant>> cache = new ConcurrentHashMap<>();
+
+        public TransformCache(
+            TriFunction<ImmutableAttributes, CachedTransforms, List<ImmutableAttributes>, List<CachedVariant>> action
+        ) {
             this.action = action;
         }
 
-        private List<TransformedVariant> query(
-            List<ResolvedVariant> sources, ImmutableAttributes requested
+        private List<CachedVariant> query(
+            ImmutableAttributes requested,
+            CachedTransforms transforms,
+            List<ResolvedVariant> sources
         ) {
+            CacheKey query = createQuery(requested, transforms, sources);
+
+            return cache.computeIfAbsent(query, key ->
+                action.apply(key.requested, key.transforms, key.variantAttributes)
+            );
+
+            // TODO: Extract result early.
+            // Merge the attributes but do not pull out transform indices.
+        }
+
+        private static CacheKey createQuery(ImmutableAttributes requested, CachedTransforms transforms, List<ResolvedVariant> sources) {
+
             List<ImmutableAttributes> variantAttributes = new ArrayList<>(sources.size());
             for (ResolvedVariant variant : sources) {
                 variantAttributes.add(variant.getAttributes().asImmutable());
             }
-            List<CachedVariant> cached = cache.computeIfAbsent(new CacheKey(variantAttributes, requested), key -> action.apply(key.variantAttributes, key.requested));
-            List<TransformedVariant> output = new ArrayList<>(cached.size());
-            for (CachedVariant variant : cached) {
-                output.add(new TransformedVariant(sources.get(variant.sourceIndex), variant.chain));
-            }
-            return output;
+
+            return new CacheKey(requested, transforms, variantAttributes);
         }
 
         private static class CacheKey {
+            private final CachedTransforms transforms;
             private final List<ImmutableAttributes> variantAttributes;
             private final ImmutableAttributes requested;
+
             private final int hashCode;
 
-            public CacheKey(List<ImmutableAttributes> variantAttributes, ImmutableAttributes requested) {
+            public CacheKey(
+                ImmutableAttributes requested,
+                CachedTransforms transforms,
+                List<ImmutableAttributes> variantAttributes
+            ) {
+                this.requested = requested;
+                this.transforms = transforms;
                 this.variantAttributes = variantAttributes;
-                this.requested = requested;
-                this.hashCode = 31 * variantAttributes.hashCode() + requested.hashCode();
+
+                this.hashCode = computeHashCode(requested, transforms, variantAttributes);
+            }
+
+            private static int computeHashCode(
+                ImmutableAttributes requested,
+                CachedTransforms transforms,
+                List<ImmutableAttributes> variantAttributes
+            ) {
+                int result = requested.hashCode();
+                result = 31 * result + transforms.hashCode();
+                result = 31 * result + variantAttributes.hashCode();
+                return result;
             }
 
             @Override
@@ -261,56 +382,11 @@ public class ConsumerProvidedVariantFinder {
                 if (o == null || getClass() != o.getClass()) {
                     return false;
                 }
+
                 CacheKey cacheKey = (CacheKey) o;
-                return variantAttributes.equals(cacheKey.variantAttributes) && requested.equals(cacheKey.requested);
-            }
-
-            @Override
-            public int hashCode() {
-                return hashCode;
-            }
-        }
-    }
-
-    /**
-     * Caches calls to {@link AttributeMatcher#isMatchingCandidate(ImmutableAttributes, ImmutableAttributes)}
-     */
-    private static class CachingAttributeMatcher {
-        private final Lazy<AttributeMatcher> matcher;
-        private final ConcurrentHashMap<CacheKey, Boolean> cache = new ConcurrentHashMap<>();
-
-        public CachingAttributeMatcher(Supplier<AttributeMatcher> matcher) {
-            // We need this lazy so that we only "lock in" the attributes as immutable
-            // only after the first time we request a transform chain. This is ugly
-            // TODO: Create a single instance of ConsumerProvidedVariantFinder per matcher
-            this.matcher = Lazy.locking().of(matcher);
-        }
-
-        public boolean isMatchingCandidate(ImmutableAttributes candidate, ImmutableAttributes requested) {
-            return cache.computeIfAbsent(new CacheKey(candidate, requested), key -> matcher.get().isMatchingCandidate(key.candidate, key.requested));
-        }
-
-        private static class CacheKey {
-            private final ImmutableAttributes candidate;
-            private final ImmutableAttributes requested;
-            private final int hashCode;
-
-            public CacheKey(ImmutableAttributes candidate, ImmutableAttributes requested) {
-                this.candidate = candidate;
-                this.requested = requested;
-                this.hashCode = 31 * candidate.hashCode() + requested.hashCode();
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) {
-                    return true;
-                }
-                if (o == null || getClass() != o.getClass()) {
-                    return false;
-                }
-                CacheKey cacheKey = (CacheKey) o;
-                return candidate.equals(cacheKey.candidate) && requested.equals(cacheKey.requested);
+                return requested.equals(cacheKey.requested) &&
+                    transforms == cacheKey.transforms && // We expect the transforms to be interned
+                    variantAttributes.equals(cacheKey.variantAttributes);
             }
 
             @Override

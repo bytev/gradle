@@ -16,6 +16,7 @@
 
 package org.gradle.api.internal.attributes;
 
+import org.gradle.api.internal.artifacts.transform.ConsumerProvidedVariantFinder;
 import org.gradle.api.internal.attributes.immutable.ImmutableAttributesSchema;
 import org.gradle.api.internal.attributes.immutable.ImmutableAttributesSchemaFactory;
 import org.gradle.api.internal.attributes.matching.AttributeMatcher;
@@ -26,6 +27,8 @@ import org.gradle.internal.service.scopes.Scope;
 import org.gradle.internal.service.scopes.ServiceScope;
 
 import javax.inject.Inject;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A collection of services for creating and working with immutable attribute schemas.
@@ -33,14 +36,18 @@ import javax.inject.Inject;
 @ServiceScope(Scope.BuildSession.class)
 public class AttributeSchemaServices {
 
+    private final ImmutableAttributesFactory attributesFactory;
     private final ImmutableAttributesSchemaFactory attributesSchemaFactory;
 
     private final ConcurrentIdentityCache<ImmutableAttributesSchema, AttributeMatcher> matchers = new ConcurrentIdentityCache<>();
+    private final Map<AttributeMatcher, ConsumerProvidedVariantFinder> transformSelectors = new ConcurrentHashMap<>();
 
     @Inject
     public AttributeSchemaServices(
+        ImmutableAttributesFactory attributesFactory,
         ImmutableAttributesSchemaFactory attributesSchemaFactory
     ) {
+        this.attributesFactory = attributesFactory;
         this.attributesSchemaFactory = attributesSchemaFactory;
     }
 
@@ -65,6 +72,16 @@ public class AttributeSchemaServices {
                     new DefaultAttributeSelectionSchema(key)
                 )
             )
+        );
+    }
+
+    /**
+     * Given an attribute matcher, return a selector that can determine artifact transform chains
+     * for a given set of request attributes, source variants, and registered transforms.
+     */
+    public ConsumerProvidedVariantFinder getTransformSelector(AttributeMatcher matcher) {
+        return transformSelectors.computeIfAbsent(matcher, m ->
+            new ConsumerProvidedVariantFinder(m, attributesFactory)
         );
     }
 

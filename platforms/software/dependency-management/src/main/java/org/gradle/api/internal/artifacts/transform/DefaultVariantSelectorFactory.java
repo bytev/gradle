@@ -19,6 +19,7 @@ package org.gradle.api.internal.artifacts.transform;
 import org.gradle.api.artifacts.ResolutionStrategy;
 import org.gradle.api.internal.DomainObjectContext;
 import org.gradle.api.internal.artifacts.ResolverResults;
+import org.gradle.api.internal.artifacts.VariantTransformRegistry;
 import org.gradle.api.internal.artifacts.configurations.ResolutionHost;
 import org.gradle.api.internal.artifacts.configurations.ResolutionResultProvider;
 import org.gradle.api.internal.attributes.AttributeSchemaServices;
@@ -35,9 +36,10 @@ import javax.inject.Inject;
 
 public class DefaultVariantSelectorFactory implements VariantSelectorFactory {
 
-    private final ConsumerProvidedVariantFinder consumerProvidedVariantFinder;
+    private final VariantTransformRegistry transformRegistry;
     private final ImmutableAttributesFactory attributesFactory;
     private final AttributeSchemaServices attributeSchemaServices;
+    private final IsolatingTransformFinder transformFinder;
     private final TransformedVariantFactory transformedVariantFactory;
     private final ResolutionFailureHandler failureProcessor;
     private final DomainObjectContext domainObjectContext;
@@ -46,18 +48,20 @@ public class DefaultVariantSelectorFactory implements VariantSelectorFactory {
 
     @Inject
     public DefaultVariantSelectorFactory(
-        ConsumerProvidedVariantFinder consumerProvidedVariantFinder,
+        VariantTransformRegistry transformRegistry,
         ImmutableAttributesFactory attributesFactory,
         AttributeSchemaServices attributeSchemaServices,
+        IsolatingTransformFinder transformFinder,
         TransformedVariantFactory transformedVariantFactory,
         ResolutionFailureHandler failureProcessor,
         DomainObjectContext domainObjectContext,
         CalculatedValueContainerFactory calculatedValueContainerFactory,
         TaskDependencyFactory taskDependencyFactory
     ) {
-        this.consumerProvidedVariantFinder = consumerProvidedVariantFinder;
+        this.transformRegistry = transformRegistry;
         this.attributesFactory = attributesFactory;
         this.attributeSchemaServices = attributeSchemaServices;
+        this.transformFinder = transformFinder;
         this.transformedVariantFactory = transformedVariantFactory;
         this.failureProcessor = failureProcessor;
         this.domainObjectContext = domainObjectContext;
@@ -91,9 +95,10 @@ public class DefaultVariantSelectorFactory implements VariantSelectorFactory {
         return new AttributeMatchingArtifactVariantSelector(
             consumerSchema,
             dependenciesResolver,
-            consumerProvidedVariantFinder,
+            transformRegistry,
             attributesFactory,
             attributeSchemaServices,
+            transformFinder,
             transformedVariantFactory,
             failureProcessor
         );
