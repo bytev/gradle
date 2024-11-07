@@ -155,10 +155,10 @@ public class DefaultTestTaskPropertiesService implements TestTaskPropertiesServi
             filter.getIncludePatterns(),
             filter.getCommandLineIncludePatterns(),
             filter.getExcludePatterns(),
-            getOrEmpty(options, JUnitPlatformOptions::getIncludeTags),
-            getOrEmpty(options, JUnitPlatformOptions::getExcludeTags),
-            getOrEmpty(options, JUnitPlatformOptions::getIncludeEngines),
-            getOrEmpty(options, JUnitPlatformOptions::getExcludeEngines)
+            getOrEmpty(options, o -> o.getIncludeTags().get()),
+            getOrEmpty(options, o -> o.getExcludeTags().get()),
+            getOrEmpty(options, o -> o.getIncludeEngines().get()),
+            getOrEmpty(options, o -> o.getExcludeEngines().get())
         );
     }
 
@@ -179,7 +179,7 @@ public class DefaultTestTaskPropertiesService implements TestTaskPropertiesServi
             detectJavaVersion(executable),
             javaModuleDetector.inferClasspath(testIsModule, task.getClasspath()),
             javaModuleDetector.inferModulePath(testIsModule, task.getClasspath()),
-            forkOptions.getAllJvmArgs(),
+            forkOptions.getAllJvmArgs().get(),
             DefaultProcessForkOptions.getActualEnvironment(forkOptions)
         );
     }
