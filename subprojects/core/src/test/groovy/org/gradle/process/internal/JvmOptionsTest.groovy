@@ -159,8 +159,8 @@ class JvmOptionsTest extends Specification {
     def "copyTo copies debugOptions"() {
         JavaForkOptions target = newJavaForkOptions()
         JvmOptions source = parse("-Dx=y")
-        source.debugOptions.host.set("*")
-        source.debugOptions.port.set(1234)
+        source.debugOptions.host = "*"
+        source.debugOptions.port = 1234
 
         when:
         source.copyTo(target)
@@ -248,9 +248,9 @@ class JvmOptionsTest extends Specification {
 
         when:
         opts.debug = true
-        opts.debugOptions.port.set(port)
-        opts.debugOptions.server.set(server)
-        opts.debugOptions.suspend.set(suspend)
+        opts.debugOptions.port = port
+        opts.debugOptions.server = server
+        opts.debugOptions.suspend = suspend
 
         then:
         opts.allJvmArgs.findAll { it.contains 'jdwp' } == [expected]
@@ -308,6 +308,5 @@ class JvmOptionsTest extends Specification {
             ["user.$it".toString(), locale."$it".toString()]
         }
     }
-
 
 }

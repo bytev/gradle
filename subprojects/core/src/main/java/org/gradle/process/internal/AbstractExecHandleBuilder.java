@@ -16,6 +16,7 @@
 package org.gradle.process.internal;
 
 import org.apache.commons.lang.StringUtils;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.initialization.BuildCancellationToken;
 import org.gradle.internal.file.PathToFileResolver;
 import org.gradle.process.BaseExecSpec;
@@ -44,8 +45,8 @@ public abstract class AbstractExecHandleBuilder extends DefaultProcessForkOption
     protected boolean daemon;
     private final Executor executor;
 
-    AbstractExecHandleBuilder(PathToFileResolver fileResolver, Executor executor, BuildCancellationToken buildCancellationToken) {
-        super(fileResolver);
+    AbstractExecHandleBuilder(ObjectFactory objectFactory, PathToFileResolver fileResolver, Executor executor, BuildCancellationToken buildCancellationToken) {
+        super(objectFactory, fileResolver);
         this.buildCancellationToken = buildCancellationToken;
         this.executor = executor;
         streamsSpec.setStandardOutput(SafeStreams.systemOut());
@@ -62,7 +63,7 @@ public abstract class AbstractExecHandleBuilder extends DefaultProcessForkOption
     @Override
     public List<String> getCommandLine() {
         List<String> commandLine = new ArrayList<>();
-        commandLine.add(getExecutable());
+        commandLine.add(getExecutable().get());
         commandLine.addAll(getAllArguments());
         return commandLine;
     }
@@ -131,13 +132,13 @@ public abstract class AbstractExecHandleBuilder extends DefaultProcessForkOption
     }
 
     public ExecHandle build() {
-        String executable = getExecutable();
+        String executable = getExecutable().get();
         if (StringUtils.isEmpty(executable)) {
             throw new IllegalStateException("execCommand == null!");
         }
 
         StreamsHandler effectiveOutputHandler = getEffectiveStreamsHandler();
-        return new DefaultExecHandle(getDisplayName(), getWorkingDir(), executable, getEffectiveArguments(), getActualEnvironment(),
+        return new DefaultExecHandle(getDisplayName(), getWorkingDir().getAsFile().get(), executable, getEffectiveArguments(), getActualEnvironment(),
             effectiveOutputHandler, inputHandler, listeners, redirectErrorStream, timeoutMillis, daemon, executor, buildCancellationToken);
     }
 

@@ -25,6 +25,7 @@ import org.gradle.api.JavaVersion;
 import org.gradle.api.NonNullApi;
 import org.gradle.api.Transformer;
 import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.file.FileTreeElement;
@@ -198,7 +199,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
         });
         forkOptions = getForkOptionsFactory().newDecoratedJavaForkOptions();
         forkOptions.getEnableAssertions().set(true);
-        forkOptions.setExecutable(null);
+        forkOptions.getExecutable().unset();
         modularity = objectFactory.newInstance(DefaultModularitySpec.class);
         javaLauncher = objectFactory.property(JavaLauncher.class).convention(createJavaLauncherConvention());
         javaLauncher.finalizeValueOnRead();
@@ -209,12 +210,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
     private Provider<JavaLauncher> createJavaLauncherConvention() {
         final ObjectFactory objectFactory = getObjectFactory();
         final JavaToolchainService javaToolchainService = getJavaToolchainService();
-        Provider<JavaToolchainSpec> executableOverrideToolchainSpec = getProviderFactory().provider(new Callable<JavaToolchainSpec>() {
-            @Override
-            public JavaToolchainSpec call() {
-                return TestExecutableUtils.getExecutableToolchainSpec(Test.this, objectFactory);
-            }
-        });
+        Provider<JavaToolchainSpec> executableOverrideToolchainSpec = TestExecutableUtils.getExecutableToolchainSpec(Test.this, objectFactory);
 
         return executableOverrideToolchainSpec
             .flatMap(new Transformer<Provider<JavaLauncher>, JavaToolchainSpec>() {
@@ -234,25 +230,8 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
      */
     @Override
     @Internal
-    @ToBeReplacedByLazyProperty
-    public File getWorkingDir() {
+    public DirectoryProperty getWorkingDir() {
         return forkOptions.getWorkingDir();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setWorkingDir(File dir) {
-        forkOptions.setWorkingDir(dir);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setWorkingDir(Object dir) {
-        forkOptions.setWorkingDir(dir);
     }
 
     /**
@@ -281,8 +260,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
      */
     @Override
     @Internal
-    @ToBeReplacedByLazyProperty
-    public String getExecutable() {
+    public Property<String> getExecutable() {
         return forkOptions.getExecutable();
     }
 
@@ -293,22 +271,6 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
     public Test executable(Object executable) {
         forkOptions.executable(executable);
         return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setExecutable(String executable) {
-        forkOptions.setExecutable(executable);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setExecutable(Object executable) {
-        forkOptions.setExecutable(executable);
     }
 
     /**
@@ -550,8 +512,8 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
     }
 
     private void copyToolchainAsExecutable(ProcessForkOptions target) {
-        String executable = getJavaLauncher().get().getExecutablePath().toString();
-        target.setExecutable(executable);
+        Provider<String> executable = getJavaLauncher().map(launcher -> launcher.getExecutablePath().toString());
+        target.getExecutable().set(executable);
     }
 
     /**
@@ -584,7 +546,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
 
     private void validateExecutableMatchesToolchain() {
         File toolchainExecutable = getJavaLauncher().get().getExecutablePath().getAsFile();
-        String customExecutable = getExecutable();
+        String customExecutable = getExecutable().getOrNull();
         JavaExecutableUtils.validateExecutable(
                 customExecutable, "Toolchain from `executable` property",
                 toolchainExecutable, "toolchain from `javaLauncher` property");

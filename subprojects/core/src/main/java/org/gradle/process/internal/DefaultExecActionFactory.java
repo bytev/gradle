@@ -131,7 +131,7 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
 
     @Override
     public ExecAction newExecAction() {
-        return new DefaultExecAction(fileResolver, executor, buildCancellationToken);
+        return new DefaultExecAction(objectFactory, fileResolver, executor, buildCancellationToken);
     }
 
     @Override
@@ -142,8 +142,8 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
     @Override
     public JavaForkOptionsInternal newJavaForkOptions() {
         final DefaultJavaForkOptions forkOptions = objectFactory.newInstance(DefaultJavaForkOptions.class, objectFactory, fileResolver, fileCollectionFactory);
-        if (forkOptions.getExecutable() == null) {
-            forkOptions.setExecutable(Jvm.current().getJavaExecutable());
+        if (!forkOptions.getExecutable().isPresent()) {
+            forkOptions.getExecutable().set(Jvm.current().getJavaExecutable().getAbsolutePath());
         }
         return forkOptions;
     }
@@ -155,8 +155,7 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
         // NOTE: We do not want/need a decorated version of JvmOptions or JavaDebugOptions because
         // these immutable instances are held across builds and will retain classloaders/services in the decorated object
         DefaultFileCollectionFactory fileCollectionFactory = new DefaultFileCollectionFactory(fileResolver, DefaultTaskDependencyFactory.withNoAssociatedProject(), new DefaultDirectoryFileTreeFactory(), nonCachingPatternSetFactory, PropertyHost.NO_OP, FileSystems.getDefault());
-        ObjectFactory objectFactory = new InstantiatorBackedObjectFactory(DirectInstantiator.INSTANCE);
-        return options.toEffectiveJavaForkOptions(objectFactory, fileCollectionFactory);
+        return options.toEffectiveJavaForkOptions(fileCollectionFactory);
     }
 
     public JavaExecAction newDecoratedJavaExecAction() {
@@ -170,7 +169,7 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
 
     @Override
     public ExecHandleBuilder newExec() {
-        return new DefaultExecHandleBuilder(fileResolver, executor, buildCancellationToken);
+        return new DefaultExecHandleBuilder(objectFactory, fileResolver, executor, buildCancellationToken);
     }
 
     @Override
@@ -326,7 +325,7 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
 
         @Override
         public ExecAction newDecoratedExecAction() {
-            DefaultExecAction execAction = instantiator.newInstance(DefaultExecAction.class, fileResolver, executor, buildCancellationToken);
+            DefaultExecAction execAction = instantiator.newInstance(DefaultExecAction.class, objectFactory, fileResolver, executor, buildCancellationToken);
             ExecHandleListener listener = getExecHandleListener();
             if (listener != null) {
                 execAction.listener(listener);
@@ -337,7 +336,7 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
         @Override
         public JavaExecAction newDecoratedJavaExecAction() {
             final JavaForkOptionsInternal forkOptions = newDecoratedJavaForkOptions();
-            forkOptions.setExecutable(Jvm.current().getJavaExecutable());
+            forkOptions.getExecutable().set(Jvm.current().getJavaExecutable().getAbsolutePath());
             DefaultJavaExecAction javaExecAction = instantiator.newInstance(
                 DefaultJavaExecAction.class,
                 fileResolver,
@@ -359,7 +358,7 @@ public abstract class DefaultExecActionFactory implements ExecFactory {
         @Override
         public JavaForkOptionsInternal newDecoratedJavaForkOptions() {
             final DefaultJavaForkOptions forkOptions = instantiator.newInstance(DefaultJavaForkOptions.class, objectFactory, fileResolver, fileCollectionFactory);
-            forkOptions.setExecutable(Jvm.current().getJavaExecutable());
+            forkOptions.getExecutable().set(Jvm.current().getJavaExecutable().getAbsolutePath());
             return forkOptions;
         }
 

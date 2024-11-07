@@ -58,8 +58,8 @@ public class CommandLineJavaCompiler implements Compiler<JavaCompileSpec>, Seria
 
     private ExecHandle createCompilerHandle(String executable, JavaCompileSpec spec) {
         ExecHandleBuilder builder = execHandleFactory.newExec();
-        builder.setWorkingDir(spec.getWorkingDir());
-        builder.setExecutable(executable);
+        builder.getWorkingDir().set(spec.getWorkingDir());
+        builder.getExecutable().set(executable);
         argumentsGenerator.collectArguments(spec, new ExecSpecBackedArgCollector(builder));
         builder.setIgnoreExitValue(true);
         return builder.build();

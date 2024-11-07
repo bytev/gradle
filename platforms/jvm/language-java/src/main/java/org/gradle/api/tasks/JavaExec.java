@@ -20,6 +20,7 @@ import org.apache.tools.ant.types.Commandline;
 import org.gradle.api.Action;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.ConventionTask;
 import org.gradle.api.jvm.ModularitySpec;
@@ -48,7 +49,6 @@ import org.gradle.process.internal.JavaExecAction;
 import org.gradle.process.internal.JavaForkOptionsInternal;
 import org.gradle.work.DisableCachingByDefault;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.io.File;
 import java.io.InputStream;
@@ -142,8 +142,7 @@ public abstract class JavaExec extends ConventionTask implements JavaExecSpec {
         javaExecSpec.getModularity().getInferModulePath().convention(modularity.getInferModulePath());
 
         JavaToolchainService javaToolchainService = getJavaToolchainService();
-        Provider<JavaLauncher> javaLauncherConvention = getProviderFactory()
-            .provider(() -> JavaExecExecutableUtils.getExecutableOverrideToolchainSpec(this, objectFactory))
+        Provider<JavaLauncher> javaLauncherConvention = JavaExecExecutableUtils.getExecutableOverrideToolchainSpec(this, objectFactory)
             .flatMap(javaToolchainService::launcherFor)
             .orElse(javaToolchainService.launcherFor(it -> {}));
         javaLauncher = objectFactory.property(JavaLauncher.class).convention(javaLauncherConvention);
@@ -162,14 +161,14 @@ public abstract class JavaExec extends ConventionTask implements JavaExecSpec {
         }
 
         String effectiveExecutable = getJavaLauncher().get().getExecutablePath().toString();
-        javaExecAction.setExecutable(effectiveExecutable);
+        javaExecAction.getExecutable().set(effectiveExecutable);
 
         execResult.set(javaExecAction.execute());
     }
 
     private void validateExecutableMatchesToolchain() {
         File toolchainExecutable = getJavaLauncher().get().getExecutablePath().getAsFile();
-        String customExecutable = getExecutable();
+        String customExecutable = getExecutable().getOrNull();
         JavaExecutableUtils.validateExecutable(
             customExecutable, "Toolchain from `executable` property",
             toolchainExecutable, "toolchain from `javaLauncher` property");
@@ -469,27 +468,9 @@ public abstract class JavaExec extends ConventionTask implements JavaExecSpec {
      * {@inheritDoc}
      */
     @Internal("covered by getJavaVersion")
-    @Nullable
     @Override
-    @ToBeReplacedByLazyProperty
-    public String getExecutable() {
+    public Property<String> getExecutable() {
         return javaExecSpec.getExecutable();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setExecutable(String executable) {
-        javaExecSpec.setExecutable(executable);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setExecutable(Object executable) {
-        javaExecSpec.setExecutable(executable);
     }
 
     /**
@@ -507,24 +488,8 @@ public abstract class JavaExec extends ConventionTask implements JavaExecSpec {
     @Override
     @Internal
     @ToBeReplacedByLazyProperty
-    public File getWorkingDir() {
+    public DirectoryProperty getWorkingDir() {
         return javaExecSpec.getWorkingDir();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setWorkingDir(File dir) {
-        javaExecSpec.setWorkingDir(dir);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setWorkingDir(Object dir) {
-        javaExecSpec.setWorkingDir(dir);
     }
 
     /**

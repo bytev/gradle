@@ -16,10 +16,11 @@
 
 package org.gradle.api.internal.provider.sources.process;
 
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.provider.Property;
 import org.gradle.process.BaseExecSpec;
 import org.gradle.process.ProcessForkOptions;
 
-import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
@@ -79,18 +80,8 @@ interface DelegatingBaseExecSpec extends BaseExecSpec {
     }
 
     @Override
-    default String getExecutable() {
+    default Property<String> getExecutable() {
         return getDelegate().getExecutable();
-    }
-
-    @Override
-    default void setExecutable(String executable) {
-        getDelegate().setExecutable(executable);
-    }
-
-    @Override
-    default void setExecutable(Object executable) {
-        getDelegate().setExecutable(executable);
     }
 
     @Override
@@ -100,18 +91,8 @@ interface DelegatingBaseExecSpec extends BaseExecSpec {
     }
 
     @Override
-    default File getWorkingDir() {
+    default DirectoryProperty getWorkingDir() {
         return getDelegate().getWorkingDir();
-    }
-
-    @Override
-    default void setWorkingDir(File dir) {
-        getDelegate().setWorkingDir(dir);
-    }
-
-    @Override
-    default void setWorkingDir(Object dir) {
-        getDelegate().setWorkingDir(dir);
     }
 
     @Override

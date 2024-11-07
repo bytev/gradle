@@ -41,7 +41,7 @@ public class AllJvmArgsAdapterUtil {
         }
     }
 
-    private static List<String> collectDebugArgs(Iterable<?> arguments) {
+    public static List<String> collectDebugArgs(Iterable<?> arguments) {
         List<String> debugArgs = new ArrayList<>();
         for (Object extraJvmArg : arguments) {
             String extraJvmArgString = extraJvmArg.toString();

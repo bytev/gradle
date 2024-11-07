@@ -18,6 +18,7 @@ package org.gradle.process.internal;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.gradle.api.provider.Property;
 import org.gradle.process.CommandLineArgumentProvider;
 import org.gradle.util.internal.GUtil;
 
@@ -30,9 +31,7 @@ public class ProcessArgumentsSpec {
 
     interface HasExecutable {
 
-        String getExecutable();
-
-        void setExecutable(Object executable);
+        Property<String> getExecutable();
     }
 
     private final HasExecutable hasExecutable;
@@ -45,7 +44,7 @@ public class ProcessArgumentsSpec {
 
     public List<String> getCommandLine() {
         List<String> commandLine = new ArrayList<>();
-        commandLine.add(hasExecutable.getExecutable());
+        commandLine.add(hasExecutable.getExecutable().get());
         commandLine.addAll(getAllArguments());
         return commandLine;
     }
@@ -57,7 +56,7 @@ public class ProcessArgumentsSpec {
 
     public ProcessArgumentsSpec commandLine(Iterable<?> args) {
         List<Object> argsList = Lists.newArrayList(args);
-        hasExecutable.setExecutable(argsList.get(0));
+        hasExecutable.getExecutable().set(argsList.get(0).toString());
         setArgs(argsList.subList(1, argsList.size()));
         return this;
     }

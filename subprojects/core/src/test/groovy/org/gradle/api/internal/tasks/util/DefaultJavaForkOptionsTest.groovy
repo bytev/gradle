@@ -261,7 +261,7 @@ class DefaultJavaForkOptionsTest extends Specification {
         target.getMaxHeapSize().get() == '1g'
         target.getBootstrapClasspath().files == [new File('file1.jar').canonicalFile] as Set
         target.getEnableAssertions().get() == true
-        target.getDebugOptions() >> new DefaultJavaDebugOptions()
+        1 * target.getDebugOptions() >> TestUtil.newInstance(DefaultJavaDebugOptions)
         target.getJvmArgumentProviders().get()[0].asArguments() == ['argFromProvider']
     }
 

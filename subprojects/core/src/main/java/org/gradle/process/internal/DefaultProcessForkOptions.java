@@ -16,65 +16,52 @@
 package org.gradle.process.internal;
 
 import com.google.common.collect.Maps;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.internal.provider.Providers;
+import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 import org.gradle.internal.file.PathToFileResolver;
 import org.gradle.process.ProcessForkOptions;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
 public class DefaultProcessForkOptions implements ProcessForkOptions {
     protected final PathToFileResolver resolver;
-    private Object executable;
-    private File workingDir;
+    private final Property<String> executable;
+    private final DirectoryProperty workingDir;
     private Map<String, Object> environment;
 
-    public DefaultProcessForkOptions(PathToFileResolver resolver) {
+    public DefaultProcessForkOptions(ObjectFactory objectFactory, PathToFileResolver resolver) {
         this.resolver = resolver;
+        this.executable = objectFactory.property(String.class);
+        this.workingDir = objectFactory.directoryProperty();
     }
 
     @Override
-    public String getExecutable() {
-        return executable == null ? null : executable.toString();
-    }
-
-    @Override
-    public void setExecutable(String executable) {
-        this.executable = executable;
-    }
-
-    @Override
-    public void setExecutable(Object executable) {
-        this.executable = executable;
+    public Property<String> getExecutable() {
+        return executable;
     }
 
     @Override
     public ProcessForkOptions executable(Object executable) {
-        setExecutable(executable);
+        if (executable instanceof Provider) {
+            getExecutable().set(((Provider<?>) executable).map(Object::toString));
+        } else {
+            getExecutable().set(Providers.changing((Providers.SerializableCallable<String>) executable::toString));
+        }
         return this;
     }
 
     @Override
-    public File getWorkingDir() {
-        if (workingDir == null) {
-            workingDir = resolver.resolve(".");
-        }
+    public DirectoryProperty getWorkingDir() {
         return workingDir;
     }
 
     @Override
-    public void setWorkingDir(File dir) {
-        this.workingDir = resolver.resolve(dir);
-    }
-
-    @Override
-    public void setWorkingDir(Object dir) {
-        this.workingDir = resolver.resolve(dir);
-    }
-
-    @Override
     public ProcessForkOptions workingDir(Object dir) {
-        setWorkingDir(dir);
+        getWorkingDir().set(resolver.resolve(dir));
         return this;
     }
 
@@ -121,8 +108,8 @@ public class DefaultProcessForkOptions implements ProcessForkOptions {
 
     @Override
     public ProcessForkOptions copyTo(ProcessForkOptions target) {
-        target.setExecutable(executable);
-        target.setWorkingDir(getWorkingDir());
+        target.getExecutable().set(getExecutable());
+        target.getWorkingDir().set(getWorkingDir());
         target.setEnvironment(getEnvironment());
         return this;
     }

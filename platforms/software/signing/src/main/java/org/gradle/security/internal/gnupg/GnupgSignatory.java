@@ -75,7 +75,7 @@ public class GnupgSignatory extends SignatorySupport {
         final List<String> arguments = buildArgumentList();
         LOG.info("Invoking {} with arguments: {}", executable, arguments);
         execOperations.exec(spec -> {
-                spec.setExecutable(executable);
+                spec.getExecutable().set(executable);
                 spec.setArgs(arguments);
                 spec.setStandardInput(prepareStdin(input));
                 spec.setStandardOutput(output);

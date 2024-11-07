@@ -83,7 +83,7 @@ public class DefaultWorkerProcessBuilder implements WorkerProcessBuilder {
         JvmVersionDetector jvmVersionDetector
     ) {
         this.javaCommand = execHandleFactory.newJavaExec();
-        this.javaCommand.setExecutable(Jvm.current().getJavaExecutable());
+        this.javaCommand.getExecutable().set(Jvm.current().getJavaExecutable().getAbsolutePath());
         this.server = server;
         this.idGenerator = idGenerator;
         this.workerImplementationFactory = workerImplementationFactory;
@@ -243,7 +243,7 @@ public class DefaultWorkerProcessBuilder implements WorkerProcessBuilder {
         JavaExecHandleBuilder javaCommand = getJavaCommand();
         javaCommand.setDisplayName(displayName);
 
-        boolean java9Compatible = jvmVersionDetector.getJavaVersionMajor(javaCommand.getExecutable()) >= 9;
+        boolean java9Compatible = jvmVersionDetector.getJavaVersionMajor(javaCommand.getExecutable().get()) >= 9;
         workerImplementationFactory.prepareJavaCommand(id, displayName, this, implementationClassPath, implementationModulePath, localAddress, javaCommand, shouldPublishJvmMemoryInfo, java9Compatible);
 
         javaCommand.args("'" + displayName + "'");

@@ -16,8 +16,10 @@
 
 package org.gradle.api.internal.provider.sources.process
 
-import org.gradle.api.internal.file.TestFiles
+
+import org.gradle.api.model.ObjectFactory
 import org.gradle.process.internal.DefaultExecSpec
+import org.gradle.util.TestUtil
 
 class ProviderCompatibleExecSpecTest extends ProviderCompatibleBaseExecSpecTestBase {
     def "spec sets commandLine on parameters"() {
@@ -35,6 +37,7 @@ class ProviderCompatibleExecSpecTest extends ProviderCompatibleBaseExecSpecTestB
 
     @Override
     protected ProviderCompatibleExecSpec createSpecUnderTest() {
-        return new ProviderCompatibleExecSpec(new DefaultExecSpec(TestFiles.pathToFileResolver(tmpDir.testDirectory)))
+        ObjectFactory objectFactory = TestUtil.objectFactory(tmpDir.testDirectory)
+        return new ProviderCompatibleExecSpec(objectFactory.newInstance(DefaultExecSpec))
     }
 }

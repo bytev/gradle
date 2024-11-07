@@ -252,7 +252,7 @@ public class InProcessGradleExecuter extends DaemonGradleExecuter {
             GradleInvocation invocation = buildInvocation();
             JavaExecHandleBuilder builder = TestFiles.execFactory().newJavaExec();
             builder.workingDir(getWorkingDir());
-            builder.setExecutable(new File(getJavaHomeLocation(), "bin/java"));
+            builder.getExecutable().set(new File(getJavaHomeLocation(), "bin/java").getAbsolutePath());
             builder.classpath(getExecHandleFactoryClasspath());
             builder.jvmArgs(invocation.launcherJvmArgs);
             // Apply the agent to the newly created daemon. The feature flag decides if it is going to be used.

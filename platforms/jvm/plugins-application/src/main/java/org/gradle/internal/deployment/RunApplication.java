@@ -71,7 +71,7 @@ public abstract class RunApplication extends DefaultTask {
         JavaApplicationHandle handle = registry.get(getPath(), JavaApplicationHandle.class);
         if (handle == null) {
             JavaExecHandleBuilder builder = getExecActionFactory().newJavaExec();
-            builder.setExecutable(Jvm.current().getJavaExecutable());
+            builder.getExecutable().set(Jvm.current().getJavaExecutable().getAbsolutePath());
             builder.setClasspath(classpath);
             builder.getMainClass().set(mainClassName);
             builder.setArgs(arguments);

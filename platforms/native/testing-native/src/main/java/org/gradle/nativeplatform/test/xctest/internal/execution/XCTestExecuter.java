@@ -135,7 +135,7 @@ public class XCTestExecuter implements TestExecuter<XCTestTestExecutionSpec> {
             this.clock = clock;
             this.rootTestSuiteId = rootTestSuiteId;
             execHandleBuilder.executable(executable);
-            execHandleBuilder.setWorkingDir(workingDir);
+            execHandleBuilder.getWorkingDir().set(workingDir);
         }
 
         @Override

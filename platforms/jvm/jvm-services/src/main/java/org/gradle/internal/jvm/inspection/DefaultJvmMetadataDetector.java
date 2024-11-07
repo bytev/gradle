@@ -100,7 +100,7 @@ public class DefaultJvmMetadataDetector implements JvmMetadataDetector {
         File tmpDir = temporaryFileProvider.createTemporaryDirectory("jvm", "probe");
         File probe = writeProbeClass(tmpDir);
         ExecHandleBuilder exec = execHandleFactory.newExec();
-        exec.setWorkingDir(probe.getParentFile());
+        exec.getWorkingDir().set(probe.getParentFile());
         exec.executable(javaExecutable(jdkPath));
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

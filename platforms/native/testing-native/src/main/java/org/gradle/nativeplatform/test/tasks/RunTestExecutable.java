@@ -22,6 +22,7 @@ import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.VerificationTask;
+import org.gradle.internal.deprecation.DeprecationLogger;
 import org.gradle.internal.logging.ConsoleRenderer;
 import org.gradle.work.DisableCachingByDefault;
 
@@ -50,8 +51,8 @@ public abstract class RunTestExecutable extends AbstractExecTask<RunTestExecutab
     protected void exec() {
         // Make convention mapping work
         getOutputDir().mkdirs();
-        setExecutable(getExecutable());
-        setWorkingDir(getOutputDir());
+        // TODO: We should find a way to do that differently with Gradle 9.0
+        DeprecationLogger.whileDisabled(() -> getWorkingDir().set(getOutputDir()));
 
         try {
             super.exec();

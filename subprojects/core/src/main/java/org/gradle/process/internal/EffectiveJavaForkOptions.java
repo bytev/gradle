@@ -85,8 +85,8 @@ public class EffectiveJavaForkOptions {
     }
 
     public void copyTo(JavaForkOptions target) {
-        target.setExecutable(executable);
-        target.setWorkingDir(workingDir);
+        target.getExecutable().set(executable);
+        target.getWorkingDir().set(workingDir);
         target.setEnvironment(environment);
         jvmOptions.copyTo(target);
     }
