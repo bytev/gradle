@@ -60,7 +60,7 @@ class ConfigurationCacheFixture {
         closure()
 
         assertStateStored(details)
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
     }
 
     void assertStateStored(HasBuildActions details) {
@@ -90,7 +90,7 @@ class ConfigurationCacheFixture {
         closure()
 
         assertStateStoredWithProblems(details, details)
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
     }
 
     void assertStateStoredWithProblems(HasBuildActions details, HasProblems problemDetails) {
@@ -120,7 +120,7 @@ class ConfigurationCacheFixture {
         closure()
 
         assertStateStoredAndDiscarded(details, details)
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
     }
 
     void assertStateStoredAndDiscarded(HasBuildActions details, HasProblems problemDetails) {
@@ -164,7 +164,7 @@ class ConfigurationCacheFixture {
         closure()
 
         assertStateRecreated(details, details)
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
     }
 
     void assertStateRecreated(HasBuildActions details, HasInvalidationReason invalidationDetails) {
@@ -193,7 +193,7 @@ class ConfigurationCacheFixture {
         closure()
 
         assertStateRecreatedWithProblems(details, details, details)
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
     }
 
     void assertStateRecreatedWithProblems(HasBuildActions details, HasInvalidationReason invalidationDetails, HasProblems problemDetails) {
@@ -218,7 +218,7 @@ class ConfigurationCacheFixture {
      */
     void assertStateLoaded() {
         assertStateLoaded(new LoadDetails())
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
     }
 
     void assertStateLoaded(LoadDetails details) {
@@ -247,7 +247,7 @@ class ConfigurationCacheFixture {
         closure.delegate = details
         closure()
 
-        assertHasWarningThatIncubatingFeatureUsed()
+        assertNoWarningThatIncubatingFeatureUsed()
         assertLoadLogged()
         spec.postBuildOutputContains("Configuration cache entry ${details.storeAction}.")
 
@@ -286,7 +286,7 @@ class ConfigurationCacheFixture {
         }
     }
 
-    private void assertHasWarningThatIncubatingFeatureUsed() {
+    void assertNoWarningThatIncubatingFeatureUsed() {
         if (quietLogging) {
             // Runs in quiet mode, and does not log anything
             return

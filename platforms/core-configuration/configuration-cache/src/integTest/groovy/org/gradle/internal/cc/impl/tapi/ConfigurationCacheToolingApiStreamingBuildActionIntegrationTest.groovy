@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.gradle.internal.cc.impl.isolated
+package org.gradle.internal.cc.impl.tapi
 
 import org.gradle.internal.cc.impl.actions.CustomModelStreamingBuildAction
 import org.gradle.internal.cc.impl.actions.ModelStreamingBuildAction
@@ -25,7 +25,7 @@ import org.gradle.tooling.model.eclipse.EclipseProject
 
 import java.util.concurrent.CopyOnWriteArrayList
 
-class IsolatedProjectsToolingApiStreamingBuildActionIntegrationTest extends AbstractIsolatedProjectsToolingApiIntegrationTest {
+class ConfigurationCacheToolingApiStreamingBuildActionIntegrationTest extends AbstractConfigurationCacheToolingApiIntegrationTest {
 
     def setup() {
         file("settings.gradle") << 'rootProject.name="hello-world"'
@@ -36,15 +36,14 @@ class IsolatedProjectsToolingApiStreamingBuildActionIntegrationTest extends Abst
         def listener2 = new TestStreamedValueListener()
 
         when:
-        withIsolatedProjects()
+        withConfigurationCacheForModels()
         def model = runBuildAction(new ModelStreamingBuildAction()) {
             setStreamedValueListener(listener1)
         }
 
         then:
-        fixture.assertModelStored {
-            projectConfigured(":")
-            modelsCreated(":", 3)
+        fixture.assertStateStored {
+            projectConfigured = 1
         }
 
         and:
@@ -57,13 +56,13 @@ class IsolatedProjectsToolingApiStreamingBuildActionIntegrationTest extends Abst
         (streamedModels[1] as EclipseProject).gradleProject.name == "hello-world"
 
         when:
-        withIsolatedProjects()
+        withConfigurationCacheForModels()
         def model2 = runBuildAction(new ModelStreamingBuildAction()) {
             setStreamedValueListener(listener2)
         }
 
         then:
-        fixture.assertModelLoaded()
+        fixture.assertStateLoaded()
 
         and:
         model2.value == 42
@@ -80,15 +79,14 @@ class IsolatedProjectsToolingApiStreamingBuildActionIntegrationTest extends Abst
         def listener2 = new TestStreamedValueListener()
 
         when:
-        withIsolatedProjects()
+        withConfigurationCacheForModels()
         def model = runPhasedBuildAction(new CustomModelStreamingBuildAction(GradleProject, 1), new CustomModelStreamingBuildAction(EclipseProject, 2)) {
             setStreamedValueListener(listener1)
         }
 
         then:
-        fixture.assertModelStored {
-            projectConfigured(":")
-            modelsCreated(":", 3)
+        fixture.assertStateStored {
+            projectConfigured = 1
         }
 
         and:
@@ -103,13 +101,13 @@ class IsolatedProjectsToolingApiStreamingBuildActionIntegrationTest extends Abst
 
 
         when:
-        withIsolatedProjects()
+        withConfigurationCacheForModels()
         def model2 = runPhasedBuildAction(new CustomModelStreamingBuildAction(GradleProject, 1), new CustomModelStreamingBuildAction(EclipseProject, 2)) {
             setStreamedValueListener(listener2)
         }
 
         then:
-        fixture.assertModelLoaded()
+        fixture.assertStateLoaded()
 
         and:
         (model2.left as GradleProject).name == "hello-world"
