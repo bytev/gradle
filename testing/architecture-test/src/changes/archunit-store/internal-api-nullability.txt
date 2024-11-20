@@ -4871,7 +4871,6 @@ Class <org.gradle.util.internal.DefaultGradleVersion$Stage> is not annotated (di
 Class <org.gradle.util.internal.DefaultGradleVersion> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (DefaultGradleVersion.java:0)
 Class <org.gradle.util.internal.DeferredUtil> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (DeferredUtil.java:0)
 Class <org.gradle.util.internal.DisconnectableInputStream$1> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (DisconnectableInputStream.java:0)
-Class <org.gradle.util.internal.DisconnectableInputStream$ThreadExecuter> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (DisconnectableInputStream.java:0)
 Class <org.gradle.util.internal.DisconnectableInputStream> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (DisconnectableInputStream.java:0)
 Class <org.gradle.util.internal.DistributionLocator> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (DistributionLocator.java:0)
 Class <org.gradle.util.internal.EncryptionAlgorithm> is not annotated (directly or via its package) with @org.gradle.api.NonNullApi in (EncryptionAlgorithm.java:0)
