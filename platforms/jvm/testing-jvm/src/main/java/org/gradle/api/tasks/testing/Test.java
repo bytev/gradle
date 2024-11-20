@@ -74,6 +74,7 @@ import org.gradle.internal.actor.ActorFactory;
 import org.gradle.internal.concurrent.CompositeStoppable;
 import org.gradle.internal.deprecation.DeprecationLogger;
 import org.gradle.internal.instrumentation.api.annotations.BytecodeUpgrade;
+import org.gradle.internal.instrumentation.api.annotations.NotToBeReplacedByLazyProperty;
 import org.gradle.internal.instrumentation.api.annotations.ReplacesEagerProperty;
 import org.gradle.internal.instrumentation.api.annotations.ToBeReplacedByLazyProperty;
 import org.gradle.internal.jvm.DefaultModularitySpec;
@@ -178,7 +179,6 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
 
     private final PatternFilterable patternSet;
     private final ConfigurableFileCollection stableClasspath;
-    private int maxParallelForks = 1;
     private TestExecuter<JvmTestExecutionSpec> testExecuter;
 
     public Test() {
@@ -203,6 +203,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
         getScanForTestClasses().convention(true);
         getTestFramework().convention(new JUnitTestFramework(this, (DefaultTestFilter) getFilter(), true));
         getForkEvery().convention(0L);
+        getMaxParallelForks().convention(1);
     }
 
     private Provider<JavaLauncher> createJavaLauncherConvention() {
@@ -580,7 +581,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
         FileCollection modulePath = javaModuleDetector.inferModulePath(testIsModule, stableClasspath);
         return new JvmTestExecutionSpec(getTestFramework().get(), classpath,
             modulePath, getCandidateClassFiles(), getScanForTestClasses().get(), getTestClassesDirs(), getPath(), getIdentityPath(), getForkEvery().get(), javaForkOptions,
-            getMaxParallelForks(), getPreviousFailedTestClasses(), testIsModule);
+            getMaxParallelForks().get(), getPreviousFailedTestClasses(), testIsModule);
     }
 
     private void validateExecutableMatchesToolchain() {
@@ -1061,72 +1062,8 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
      * @return The maximum number of test classes to execute in a test process. Returns 0 when there is no maximum.
      */
     @Internal
-    @ReplacesEagerProperty(originalType = long.class, adapter = ForkEveryAdapter.class)
+    @ReplacesEagerProperty(adapter = ForkEveryAdapter.class)
     public abstract Property<Long> getForkEvery();
-
-    static class ForkEveryAdapter {
-
-        @BytecodeUpgrade
-        static long getForkEvery(Test test) {
-            return test.getDebug().get() ? 0 : test.getForkEvery().get();
-        }
-
-        @BytecodeUpgrade
-        static void setForkEvery(Test test, long forkEvery) {
-            if (forkEvery < 0) {
-                throw new IllegalArgumentException("Cannot set forkEvery to a value less than 0.");
-            }
-            test.getForkEvery().set(forkEvery);
-        }
-
-        @BytecodeUpgrade
-        static void setForkEvery(Test test, Long forkEvery) {
-            if (forkEvery == null) {
-                DeprecationLogger.deprecateBehaviour("Setting Test.forkEvery to null.")
-                    .withAdvice("Set Test.forkEvery to 0 instead.")
-                    .willBecomeAnErrorInGradle9()
-                    .withDslReference(Test.class, "forkEvery")
-                    .nagUser();
-                test.getForkEvery().set(0L);
-            } else {
-                DeprecationLogger.deprecateMethod(Test.class, "setForkEvery(Long)")
-                    .replaceWith("Test.setForkEvery(long)")
-                    .willBeRemovedInGradle9()
-                    .withDslReference(Test.class, "forkEvery")
-                    .nagUser();
-                setForkEvery(test, forkEvery.longValue());
-            }
-        }
-    }
-
-    /**
-     * Sets the maximum number of test classes to execute in a forked test process.
-     * <p>
-     * By default, Gradle automatically uses a separate JVM when executing tests, so changing this property is usually not necessary.
-     * </p>
-     *
-     * @param forkEvery The maximum number of test classes. Use 0 to specify no maximum.
-     * @since 8.1
-     */
-//    public void setForkEvery(long forkEvery) {
-//        if (forkEvery < 0) {
-//            throw new IllegalArgumentException("Cannot set forkEvery to a value less than 0.");
-//        }
-//        this.forkEvery = forkEvery;
-//    }
-
-//    /**
-//     * Sets the maximum number of test classes to execute in a forked test process.
-//     * <p>
-//     * By default, Gradle automatically uses a separate JVM when executing tests, so changing this property is usually not necessary.
-//     * </p>
-//     *
-//     * @param forkEvery The maximum number of test classes. Use null or 0 to specify no maximum.
-//     * @deprecated Use {@link #setForkEvery(long)} instead.
-//     */
-//    @Deprecated
-//    public void setForkEvery(@Nullable Long forkEvery) {
-//    }
 
     /**
      * Returns the maximum number of test processes to start in parallel.
@@ -1143,25 +1080,8 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
      * @return The maximum number of forked test processes.
      */
     @Internal
-    @ToBeReplacedByLazyProperty
-    public int getMaxParallelForks() {
-        return getDebug().get() ? 1 : maxParallelForks;
-    }
-
-    /**
-     * Sets the maximum number of test processes to start in parallel.
-     * <p>
-     * By default, Gradle executes a single test class at a time but allows multiple {@link Test} tasks to run in parallel.
-     * </p>
-     *
-     * @param maxParallelForks The maximum number of forked test processes. Use 1 to disable parallel test execution for this task.
-     */
-    public void setMaxParallelForks(int maxParallelForks) {
-        if (maxParallelForks < 1) {
-            throw new IllegalArgumentException("Cannot set maxParallelForks to a value less than 1.");
-        }
-        this.maxParallelForks = maxParallelForks;
-    }
+    @ReplacesEagerProperty(adapter = MaxParallelForks.class)
+    public abstract Property<Integer> getMaxParallelForks();
 
     /**
      * Returns the classes files to scan for test classes.
@@ -1172,7 +1092,7 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
     @SkipWhenEmpty
     @IgnoreEmptyDirectories
     @PathSensitive(PathSensitivity.RELATIVE)
-    @ToBeReplacedByLazyProperty(comment = "Should this be kept as it is?")
+    @NotToBeReplacedByLazyProperty(because = "Read-only FileTree property")
     public FileTree getCandidateClassFiles() {
         return getTestClassesDirs().getAsFileTree().matching(patternSet);
     }
@@ -1279,5 +1199,34 @@ public abstract class Test extends AbstractTestTask implements JavaForkOptions, 
     @Inject
     protected JavaModuleDetector getJavaModuleDetector() {
         throw new UnsupportedOperationException();
+    }
+
+    static class ForkEveryAdapter {
+        @BytecodeUpgrade
+        static long getForkEvery(Test test) {
+            return test.getDebug().get() ? 0 : test.getForkEvery().get();
+        }
+
+        @BytecodeUpgrade
+        static void setForkEvery(Test test, long forkEvery) {
+            test.getForkEvery().set(forkEvery);
+        }
+
+        @BytecodeUpgrade
+        static void setForkEvery(Test test, @Nullable Long forkEvery) {
+            test.getForkEvery().set(forkEvery);
+        }
+    }
+
+    static class MaxParallelForks {
+        @BytecodeUpgrade
+        static int getMaxParallelForks(Test test) {
+            return test.getDebug().get() ? 1 : test.getMaxParallelForks().get();
+        }
+
+        @BytecodeUpgrade
+        static void setMaxParallelForks(Test test, int maxParallelForks) {
+            test.getMaxParallelForks().set(maxParallelForks);
+        }
     }
 }
