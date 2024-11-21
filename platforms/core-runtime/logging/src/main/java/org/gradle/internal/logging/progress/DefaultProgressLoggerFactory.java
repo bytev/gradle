@@ -215,7 +215,7 @@ public class DefaultProgressLoggerFactory implements ProgressLoggerFactory {
             listener.started(new ProgressStartEvent(
                 progressOperationId,
                 parentProgressId,
-                clock.getCurrentTime(),
+                clock.getTimestamp(),
                 category,
                 description,
                 loggingHeader,
@@ -248,7 +248,7 @@ public class DefaultProgressLoggerFactory implements ProgressLoggerFactory {
             assertRunning();
             state = State.completed;
             current.set(previous);
-            listener.completed(new ProgressCompleteEvent(progressOperationId, clock.getCurrentTime(), ensureNotNull(status), failed));
+            listener.completed(new ProgressCompleteEvent(progressOperationId, clock.getTimestamp(), ensureNotNull(status), failed));
         }
 
         private String ensureNotNull(String status) {

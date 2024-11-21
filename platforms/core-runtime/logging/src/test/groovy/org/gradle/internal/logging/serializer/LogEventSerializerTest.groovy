@@ -31,7 +31,7 @@ class LogEventSerializerTest extends LogSerializerSpec {
         BaseSerializerFactory serializerFactory = new BaseSerializerFactory()
         Serializer<LogLevel> logLevelSerializer = serializerFactory.getSerializerFor(LogLevel.class)
         Serializer<Throwable> throwableSerializer = serializerFactory.getSerializerFor(Throwable.class)
-        serializer = new LogEventSerializer(logLevelSerializer, throwableSerializer)
+        serializer = new LogEventSerializer(new TimestampSerializer(), logLevelSerializer, throwableSerializer)
     }
 
     def "can serialize LogEvent messages with failure and operation id"() {
@@ -41,7 +41,7 @@ class LogEventSerializerTest extends LogSerializerSpec {
 
         then:
         result instanceof LogEvent
-        result.timestamp == TIMESTAMP
+        result.time == TIMESTAMP
         result.category == CATEGORY
         result.logLevel == LogLevel.LIFECYCLE
         result.message == MESSAGE
@@ -58,7 +58,7 @@ class LogEventSerializerTest extends LogSerializerSpec {
 
         then:
         result instanceof LogEvent
-        result.timestamp == TIMESTAMP
+        result.time == TIMESTAMP
         result.category == CATEGORY
         result.logLevel == LogLevel.LIFECYCLE
         result.message == MESSAGE
@@ -73,7 +73,7 @@ class LogEventSerializerTest extends LogSerializerSpec {
 
         then:
         result instanceof LogEvent
-        result.timestamp == TIMESTAMP
+        result.time == TIMESTAMP
         result.category == CATEGORY
         result.logLevel == LogLevel.LIFECYCLE
         result.message == null

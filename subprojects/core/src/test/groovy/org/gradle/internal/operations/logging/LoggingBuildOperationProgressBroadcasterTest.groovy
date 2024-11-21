@@ -27,6 +27,8 @@ import org.gradle.internal.operations.OperationIdentifier
 import spock.lang.Shared
 import spock.lang.Specification
 
+import static org.gradle.internal.time.TestTime.timestampOf
+
 class LoggingBuildOperationProgressBroadcasterTest extends Specification {
 
     def outputEventListenerManager = Mock(OutputEventListenerManager)
@@ -49,7 +51,7 @@ class LoggingBuildOperationProgressBroadcasterTest extends Specification {
         bridge.onOutput(eventWithBuildOperationId)
 
         then:
-        1 * buildOperationProgressEventEmitter.emit(_, _, _) >> { OperationIdentifier operationIdentifier, long timestamp, Object details ->
+        1 * buildOperationProgressEventEmitter.emit(_, _, _) >> { OperationIdentifier operationIdentifier, def timestamp, Object details ->
             assert operationIdentifier == testOperationId
             assert details == eventWithBuildOperationId
         }
@@ -59,16 +61,16 @@ class LoggingBuildOperationProgressBroadcasterTest extends Specification {
         bridge.onOutput(eventWithFallbackBuildOperationId)
 
         then:
-        1 * buildOperationProgressEventEmitter.emit(_, _, _) >> { OperationIdentifier operationIdentifier, long timestamp, Object details ->
+        1 * buildOperationProgressEventEmitter.emit(_, _, _) >> { OperationIdentifier operationIdentifier, def timestamp, Object details ->
             assert operationIdentifier == fallbackOperationId
             assert details == eventWithFallbackBuildOperationId
         }
 
         where:
-        eventType             | eventWithBuildOperationId                                              | eventWithFallbackBuildOperationId
-        LogEvent              | new LogEvent(0, 'c', LogLevel.INFO, 'm', null, testOperationId)        | new LogEvent(0, 'c', LogLevel.INFO, 'm', null, null)
-        StyledTextOutputEvent | new StyledTextOutputEvent(0, 'c', LogLevel.INFO, testOperationId, 'm') | new StyledTextOutputEvent(0, 'c', LogLevel.INFO, null, 'm')
-        ProgressStartEvent    | progressStartEvent(testOperationId)                                    | progressStartEvent(null)
+        eventType             | eventWithBuildOperationId                                                           | eventWithFallbackBuildOperationId
+        LogEvent              | new LogEvent(timestampOf(0), 'c', LogLevel.INFO, 'm', null, testOperationId)        | new LogEvent(timestampOf(0), 'c', LogLevel.INFO, 'm', null, null)
+        StyledTextOutputEvent | new StyledTextOutputEvent(timestampOf(0), 'c', LogLevel.INFO, testOperationId, 'm') | new StyledTextOutputEvent(timestampOf(0), 'c', LogLevel.INFO, null, 'm')
+        ProgressStartEvent    | progressStartEvent(testOperationId)                                                 | progressStartEvent(null)
     }
 
     def "does not forward progress start events with no logging header"() {
@@ -95,6 +97,6 @@ class LoggingBuildOperationProgressBroadcasterTest extends Specification {
     }
 
     private ProgressStartEvent progressStartEvent(OperationIdentifier operationId, String header = 'header') {
-        new ProgressStartEvent(null, null, 0, 'c', 'd', header, 's', 0, false, operationId, BuildOperationCategory.UNCATEGORIZED)
+        new ProgressStartEvent(null, null, timestampOf(0), 'c', 'd', header, 's', 0, false, operationId, BuildOperationCategory.UNCATEGORIZED)
     }
 }

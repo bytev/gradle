@@ -16,6 +16,9 @@
 
 package org.gradle.internal.operations
 
+
+import org.gradle.internal.time.FixedClock
+import org.gradle.internal.time.TestTime
 import org.gradle.test.fixtures.concurrent.ConcurrentSpec
 
 import javax.annotation.Nullable
@@ -25,13 +28,12 @@ import static org.gradle.internal.operations.DefaultBuildOperationRunner.BuildOp
 import static org.gradle.internal.operations.DefaultBuildOperationRunner.ReadableBuildOperationContext
 
 class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
-
-    def timeProvider = Mock(BuildOperationTimeSupplier)
+    def clock = FixedClock.createAt(123L)
     def listener = Mock(BuildOperationExecutionListener)
     def currentBuildOperationRef = CurrentBuildOperationRef.instance()
     def operationRunner = new DefaultBuildOperationRunner(
         currentBuildOperationRef,
-        timeProvider, new DefaultBuildOperationIdFactory(), { listener })
+        clock, new DefaultBuildOperationIdFactory(), { listener })
 
     def setup() {
         currentBuildOperationRef.clear()
@@ -51,7 +53,6 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
 
         then:
         1 * buildOperation.description() >> operationDetailsBuilder
-        1 * timeProvider.currentTime >> 123L
         1 * listener.start(_, _) >> { BuildOperationDescriptor descriptor, BuildOperationState operationState ->
             descriptorUnderTest = descriptor
             operationStateUnderTest = operationState
@@ -60,7 +61,7 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
             assert descriptor.name == "<op>"
             assert descriptor.displayName == "<some-operation>"
             assert descriptor.details == details
-            assert operationState.startTime == 123L
+            assert operationState.startTime == clock.timestamp
         }
 
         then:
@@ -100,7 +101,6 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
         def contextUnderTest = operationRunner.start(operationDetailsBuilder)
 
         then:
-        1 * timeProvider.currentTime >> 123L
         1 * listener.start(_, _) >> { BuildOperationDescriptor descriptor, BuildOperationState operationState ->
             descriptorUnderTest = descriptor
             operationStateUnderTest = operationState
@@ -109,7 +109,7 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
             assert descriptor.name == "<op>"
             assert descriptor.displayName == "<some-operation>"
             assert descriptor.details == details
-            assert operationState.startTime == 123L
+            assert operationState.startTime == clock.timestamp
         }
 
         when:
@@ -152,7 +152,6 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
 
         then:
         1 * buildOperation.description() >> operationDetailsBuilder
-        1 * timeProvider.currentTime >> 123L
         1 * listener.start(_, _) >> { BuildOperationDescriptor descriptor, BuildOperationState operationState ->
             descriptorUnderTest = descriptor
             operationStateUnderTest = operationState
@@ -197,7 +196,6 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
         def contextUnderTest = operationRunner.start(operationDetailsBuilder)
 
         then:
-        1 * timeProvider.currentTime >> 123L
         1 * listener.start(_, _) >> { BuildOperationDescriptor descriptor, BuildOperationState operationState ->
             descriptorUnderTest = descriptor
             operationStateUnderTest = operationState
@@ -727,7 +725,7 @@ class DefaultBuildOperationRunnerTest extends ConcurrentSpec {
     }
 
     private static BuildOperationState operation(String description) {
-        def operation = new BuildOperationState(displayName(description).build(), 100L)
+        def operation = new BuildOperationState(displayName(description).build(), TestTime.timestampOf(100L))
         operation.running = true
         return operation
     }

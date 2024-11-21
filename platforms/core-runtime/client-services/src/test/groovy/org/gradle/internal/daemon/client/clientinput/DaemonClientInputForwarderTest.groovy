@@ -28,6 +28,7 @@ import org.gradle.util.ConcurrentSpecification
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
+import static org.gradle.internal.time.TestTime.timestampOf
 import static org.gradle.util.internal.TextUtil.toPlatformLineSeparators
 
 class DaemonClientInputForwarderTest extends ConcurrentSpecification {
@@ -120,6 +121,7 @@ class DaemonClientInputForwarderTest extends ConcurrentSpecification {
 
     def "collects additional line of text when invalid user response received"() {
         def event = Stub(PromptOutputEvent)
+        _ * event.time >> timestampOf(100L)
         _ * event.convert("bad") >> PromptOutputEvent.PromptResult.newPrompt("try again")
         _ * event.convert("ok") >> PromptOutputEvent.PromptResult.response(12)
 

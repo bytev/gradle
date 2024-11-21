@@ -31,4 +31,8 @@ public interface Clock {
      */
     long getCurrentTime();
 
+    /**
+     * The current timestamp.
+     */
+    Timestamp getTimestamp();
 }

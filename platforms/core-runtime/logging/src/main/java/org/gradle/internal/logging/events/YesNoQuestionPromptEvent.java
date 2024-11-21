@@ -19,6 +19,7 @@ package org.gradle.internal.logging.events;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
+import org.gradle.internal.time.Timestamp;
 
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class YesNoQuestionPromptEvent extends PromptOutputEvent {
     public static final List<String> YES_NO_CHOICES = Lists.newArrayList("yes", "no");
     private final String question;
 
-    public YesNoQuestionPromptEvent(long timestamp, String question) {
+    public YesNoQuestionPromptEvent(Timestamp timestamp, String question) {
         super(timestamp);
         this.question = question;
     }

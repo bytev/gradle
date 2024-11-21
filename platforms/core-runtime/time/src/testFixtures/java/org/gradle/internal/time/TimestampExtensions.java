@@ -16,20 +16,21 @@
 
 package org.gradle.internal.time;
 
+public final class TimestampExtensions {
+    private TimestampExtensions() {}
 
-public class FixedClock implements Clock {
-    long current;
 
-    public FixedClock() {
-        this(System.currentTimeMillis());
-    }
-
-    public FixedClock(long startTime) {
-        current = startTime;
-    }
-
-    @Override
-    public long getCurrentTime() {
-        return current;
+    /**
+     * Adds {@code advanceMs} to the time represented by {@code base} and returns the result.
+     *
+     * <p>
+     * This method is available in Groovy as an extension method on the {@link Timestamp} class.
+     *
+     * @param base the base timestamp
+     * @param advanceMs the advancement
+     * @return a new timestamp
+     */
+    public static Timestamp plusMillis(Timestamp base, long advanceMs) {
+        return TestTime.timestampOf(base.getTimeMs() + advanceMs);
     }
 }

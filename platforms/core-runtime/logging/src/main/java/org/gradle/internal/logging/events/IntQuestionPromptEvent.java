@@ -16,12 +16,14 @@
 
 package org.gradle.internal.logging.events;
 
+import org.gradle.internal.time.Timestamp;
+
 public class IntQuestionPromptEvent extends PromptOutputEvent {
     private final String question;
     private final int minValue;
     private final int defaultValue;
 
-    public IntQuestionPromptEvent(long timestamp, String question, int minValue, int defaultValue) {
+    public IntQuestionPromptEvent(Timestamp timestamp, String question, int minValue, int defaultValue) {
         super(timestamp);
         this.question = question;
         this.minValue = minValue;

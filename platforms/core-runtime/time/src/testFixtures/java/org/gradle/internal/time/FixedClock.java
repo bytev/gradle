@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 the original author or authors.
+ * Copyright 2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,37 @@
 
 package org.gradle.internal.time;
 
-public class MockClock implements Clock {
+/**
+ * A clock that always returns the same time.
+ */
+public class FixedClock extends AbstractClock {
+    private final long current;
 
-    long current;
-
-    public MockClock() {
-        this(System.currentTimeMillis());
-    }
-
-    public MockClock(long startTime) {
+    private FixedClock(long startTime) {
         current = startTime;
     }
 
-    public void increment(long diff) {
-        current += diff;
-    }
-
-    /** Increments the time by 10ms and returns it. */
     @Override
     public long getCurrentTime() {
-        current += 10L;
         return current;
     }
 
+    /**
+     * Creates a clock that always returns 0 as the current time.
+     *
+     * @return the clock
+     */
+    public static Clock create() {
+        return new FixedClock(0L);
+    }
+
+    /**
+     * Creates a clock that always returns {@code startTime} as the current time.
+     *
+     * @param startTime start time in milliseconds since epoch
+     * @return the clock
+     */
+    public static Clock createAt(long startTime) {
+        return new FixedClock(startTime);
+    }
 }

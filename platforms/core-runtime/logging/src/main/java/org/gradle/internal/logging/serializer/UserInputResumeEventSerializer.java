@@ -20,16 +20,22 @@ import org.gradle.internal.logging.events.UserInputResumeEvent;
 import org.gradle.internal.serialize.Decoder;
 import org.gradle.internal.serialize.Encoder;
 import org.gradle.internal.serialize.Serializer;
+import org.gradle.internal.time.Timestamp;
 
 public class UserInputResumeEventSerializer implements Serializer<UserInputResumeEvent> {
+    private final Serializer<Timestamp> timestampSerializer;
+
+    public UserInputResumeEventSerializer(Serializer<Timestamp> timestampSerializer) {
+        this.timestampSerializer = timestampSerializer;
+    }
 
     @Override
     public void write(Encoder encoder, UserInputResumeEvent event) throws Exception {
-        encoder.writeLong(event.getTimestamp());
+        timestampSerializer.write(encoder, event.getTime());
     }
 
     @Override
     public UserInputResumeEvent read(Decoder decoder) throws Exception {
-        return new UserInputResumeEvent(decoder.readLong());
+        return new UserInputResumeEvent(timestampSerializer.read(decoder));
     }
 }

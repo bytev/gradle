@@ -16,11 +16,13 @@
 
 package org.gradle.internal.logging.events;
 
+import org.gradle.internal.time.Timestamp;
+
 public class TextQuestionPromptEvent extends PromptOutputEvent {
     private final String question;
     private final String defaultValue;
 
-    public TextQuestionPromptEvent(long timestamp, String question, String defaultValue) {
+    public TextQuestionPromptEvent(Timestamp timestamp, String question, String defaultValue) {
         super(timestamp);
         this.question = question;
         this.defaultValue = defaultValue;

@@ -16,15 +16,17 @@
 
 package org.gradle.internal.operations;
 
-public final class OperationStartEvent {
-    private final long startTime;
+import org.gradle.internal.time.Timestamp;
 
-    public OperationStartEvent(long startTime) {
+public final class OperationStartEvent {
+    private final Timestamp startTime;
+
+    public OperationStartEvent(Timestamp startTime) {
         this.startTime = startTime;
     }
 
     public long getStartTime() {
-        return startTime;
+        return startTime.getTimeMs();
     }
 
     @Override

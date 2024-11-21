@@ -17,26 +17,29 @@
 package org.gradle.internal.logging.events;
 
 import org.gradle.api.logging.LogLevel;
-import org.gradle.internal.operations.logging.LogEventLevel;
 import org.gradle.internal.logging.text.StyledTextOutput;
 import org.gradle.internal.operations.OperationIdentifier;
+import org.gradle.internal.operations.logging.LogEventLevel;
+import org.gradle.internal.time.Timestamp;
 
 import javax.annotation.Nullable;
 
 @SuppressWarnings("deprecation")
 public class LogEvent extends RenderableOutputEvent implements org.gradle.internal.logging.events.operations.LogEventBuildOperationProgressDetails {
     private final String message;
+    @Nullable
     private final Throwable throwable;
 
-    public LogEvent(long timestamp, String category, LogLevel logLevel, String message, @Nullable Throwable throwable) {
+    public LogEvent(Timestamp timestamp, String category, LogLevel logLevel, String message, @Nullable Throwable throwable) {
         this(timestamp, category, logLevel, message, throwable, null);
     }
 
-    public LogEvent(long timestamp, String category, LogLevel logLevel, String message, @Nullable Throwable throwable, @Nullable OperationIdentifier buildOperationIdentifier) {
+    public LogEvent(Timestamp timestamp, String category, LogLevel logLevel, String message, @Nullable Throwable throwable, @Nullable OperationIdentifier buildOperationIdentifier) {
         super(timestamp, category, logLevel, buildOperationIdentifier);
         this.message = message;
         this.throwable = throwable;
     }
+
 
     @Override
     public String getMessage() {
@@ -70,6 +73,6 @@ public class LogEvent extends RenderableOutputEvent implements org.gradle.intern
 
     @Override
     public RenderableOutputEvent withBuildOperationId(OperationIdentifier buildOperationId) {
-        return new LogEvent(getTimestamp(), getCategory(), getLogLevel(), message, throwable, buildOperationId);
+        return new LogEvent(getTime(), getCategory(), getLogLevel(), message, throwable, buildOperationId);
     }
 }
