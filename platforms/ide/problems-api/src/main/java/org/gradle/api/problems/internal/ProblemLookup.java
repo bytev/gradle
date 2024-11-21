@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 the original author or authors.
+ * Copyright 2024 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,10 @@
 
 package org.gradle.api.problems.internal;
 
-/**
- * A basic location pointing to a specific part of a file using a global offset and length for coordinates.
- * <p>
- * The coordinates are expected to be zero indexed.
- */
-public interface OffsetInFileLocation extends FileLocation {
+import org.gradle.api.problems.Problem;
 
-    /**
-     * The global offset from the beginning of the file.
-     *
-     * @return the zero-indexed the offset
-     */
-    int getOffset();
+import java.util.Collection;
 
-    /**
-     * The content of the content starting from {@link #getOffset()}.
-     *
-     * @return the length
-     */
-    int getLength();
+public interface ProblemLookup {
+    Collection<Problem> findAll(Throwable t);
 }

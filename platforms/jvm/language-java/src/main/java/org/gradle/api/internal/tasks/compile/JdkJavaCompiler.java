@@ -59,7 +59,7 @@ public class JdkJavaCompiler implements Compiler<JavaCompileSpec>, Serializable 
         this.context = new Context();
         this.compilerFactory = compilerFactory;
         this.problemsService = problemsService;
-        this.diagnosticToProblemListener = new DiagnosticToProblemListener(problemsService.getInternalReporter(), context);
+        this.diagnosticToProblemListener = new DiagnosticToProblemListener(problemsService.getReporter(), context);
     }
 
     @Override
@@ -71,7 +71,7 @@ public class JdkJavaCompiler implements Compiler<JavaCompileSpec>, Serializable 
         try {
             task = createCompileTask(spec, result);
         } catch (RuntimeException ex) {
-            throw problemsService.getInternalReporter().throwing(builder -> {
+            throw problemsService.getReporter().throwing(builder -> {
                 buildProblemFrom(ex, builder);
             });
         }
@@ -81,7 +81,10 @@ public class JdkJavaCompiler implements Compiler<JavaCompileSpec>, Serializable 
             System.err.println(diagnosticCounts);
         }
         if (!success) {
-            throw new CompilationFailedException(result, diagnosticToProblemListener.getReportedProblems(), diagnosticCounts);
+            CompilationFailedException exception = new CompilationFailedException(result, diagnosticCounts);
+            throw problemsService.getInternalReporter().throwing(exception, diagnosticToProblemListener.getReportedProblems());
+        } else {
+            problemsService.getInternalReporter().report(diagnosticToProblemListener.getReportedProblems());
         }
         return result;
     }

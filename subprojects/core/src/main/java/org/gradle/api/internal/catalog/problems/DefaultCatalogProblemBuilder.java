@@ -18,10 +18,10 @@ package org.gradle.api.internal.catalog.problems;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.initialization.dsl.VersionCatalogBuilder;
 import org.gradle.api.internal.DocumentationRegistry;
-import org.gradle.api.problems.internal.DocLink;
+import org.gradle.api.problems.DocLink;
+import org.gradle.api.problems.Problem;
+import org.gradle.api.problems.ProblemDefinition;
 import org.gradle.api.problems.internal.InternalProblems;
-import org.gradle.api.problems.internal.Problem;
-import org.gradle.api.problems.internal.ProblemDefinition;
 import org.gradle.internal.logging.text.TreeFormatter;
 
 import javax.annotation.Nonnull;
@@ -49,7 +49,7 @@ public class DefaultCatalogProblemBuilder {
         formatter.startChildren();
         for (Problem problem : problems) {
             formatter.node(getProblemString(problem));
-            problemsService.getInternalReporter().report(problem);
+            problemsService.getReporter().report(problem);
         }
         formatter.endChildren();
         throw new InvalidUserDataException(formatter.toString());

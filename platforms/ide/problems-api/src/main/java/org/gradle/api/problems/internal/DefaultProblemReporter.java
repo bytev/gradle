@@ -17,6 +17,7 @@
 package org.gradle.api.problems.internal;
 
 import org.gradle.api.Action;
+import org.gradle.api.problems.Problem;
 import org.gradle.api.problems.ProblemSpec;
 import org.gradle.internal.exception.ExceptionAnalyser;
 import org.gradle.internal.operations.CurrentBuildOperationRef;
@@ -24,6 +25,7 @@ import org.gradle.internal.operations.OperationIdentifier;
 import org.gradle.problems.buildtree.ProblemStream;
 
 import javax.annotation.Nonnull;
+import java.util.Collection;
 
 public class DefaultProblemReporter implements InternalProblemReporter {
 
@@ -76,9 +78,30 @@ public class DefaultProblemReporter implements InternalProblemReporter {
         }
     }
 
+    @Override
+    public RuntimeException throwing(Throwable exception, Collection<? extends Problem> problems) {
+        for (Problem problem : problems) {
+            Problem problemWithException = new DefaultProblem(
+                problem.getDefinition(),
+                problem.getContextualLabel(),
+                problem.getSolutions(),
+                problem.getOriginLocations(),
+                problem.getContextualLocations(),
+                problem.getDetails(),
+                transform(exception),
+                problem.getAdditionalData()
+            );
+            report(problemWithException);
+        }
+        if (exception instanceof RuntimeException) {
+            return (RuntimeException) exception;
+        } else {
+            throw new RuntimeException(exception);
+        }
+    }
+
     private RuntimeException throwError(Throwable exception, Problem problem) {
         report(problem);
-        exceptionProblemRegistry.onProblem(transform(exception), problem);
         if (exception instanceof RuntimeException) {
             return (RuntimeException) exception;
         } else {
@@ -87,7 +110,14 @@ public class DefaultProblemReporter implements InternalProblemReporter {
     }
 
     @Override
-    public Problem create(Action<InternalProblemSpec> action) {
+    public Problem create(Action<ProblemSpec> action) {
+        DefaultProblemBuilder defaultProblemBuilder = createProblemBuilder();
+        action.execute(defaultProblemBuilder);
+        return defaultProblemBuilder.build();
+    }
+
+    @Override
+    public Problem internalCreate(Action<InternalProblemSpec> action) {
         DefaultProblemBuilder defaultProblemBuilder = createProblemBuilder();
         action.execute(defaultProblemBuilder);
         return defaultProblemBuilder.build();
@@ -106,6 +136,13 @@ public class DefaultProblemReporter implements InternalProblemReporter {
         OperationIdentifier id = currentBuildOperationRef.getId();
         if (id != null) {
             report(problem, id);
+        }
+    }
+
+    @Override
+    public void report(Collection<? extends Problem> problems) {
+        for (Problem problem : problems) {
+            report(problem);
         }
     }
 

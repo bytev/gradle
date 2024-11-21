@@ -14,10 +14,24 @@
  * limitations under the License.
  */
 
-package org.gradle.api.problems.internal;
+package org.gradle.api.problems;
+
+import org.gradle.api.Incubating;
 
 /**
- * Marker interface for additional data that can be attached to a {@link Problem}.
+ * A file location.
+ *
+ * @since 8.12
  */
-public interface AdditionalDataSpec {
+@Incubating
+public interface FileLocation extends ProblemLocation {
+
+    /**
+     * The path to the file.
+     *
+     * @return the file path
+     *
+     * @since 8.12
+     */
+    String getPath();
 }

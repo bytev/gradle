@@ -14,24 +14,16 @@
  * limitations under the License.
  */
 
-package org.gradle.api.problems.internal;
+package org.gradle.api.problems;
 
-import org.gradle.api.NonNullApi;
 
-import java.util.Collection;
+import org.gradle.api.Incubating;
 
 /**
- * If implemented on an {@link Exception}, this interface will be used to fetch and render
- * problems specific to the exception.
+ * Represents a location information of a problem.
+ *
+ * @since 8.12
  */
-@NonNullApi
-public interface ProblemAwareFailure {
-
-    /**
-     * Returns a collection of problems that are specific to this exception.
-     *
-     * @return a collection of problems
-     * @since 8.10
-     */
-    Collection<Problem> getProblems();
+@Incubating
+public interface ProblemLocation {
 }
