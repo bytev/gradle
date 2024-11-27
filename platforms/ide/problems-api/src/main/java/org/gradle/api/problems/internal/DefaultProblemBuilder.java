@@ -22,6 +22,8 @@ import org.gradle.api.problems.ProblemGroup;
 import org.gradle.api.problems.ProblemId;
 import org.gradle.api.problems.Severity;
 import org.gradle.api.problems.SharedProblemGroup;
+import org.gradle.api.problems.deprecation.spec.DeprecateGenericSpec;
+import org.gradle.api.problems.internal.deprecation.InternalDeprecationBuilder;
 import org.gradle.problems.Location;
 import org.gradle.problems.ProblemDiagnostics;
 import org.gradle.problems.buildtree.ProblemStream;
@@ -30,7 +32,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DefaultProblemBuilder implements InternalProblemBuilder {
+public class DefaultProblemBuilder implements InternalProblemBuilder, InternalDeprecationBuilder {
     @Nullable
     private ProblemStream problemStream;
 
@@ -286,6 +288,18 @@ public class DefaultProblemBuilder implements InternalProblemBuilder {
 
     public ProblemId getId() {
         return id;
+    }
+
+    @Override
+    public DeprecateGenericSpec withLabel(String label) {
+        contextualLabel(label);
+        return this;
+    }
+
+    @Override
+    public DeprecateGenericSpec withDetails(String details) {
+        details(details);
+        return this;
     }
 
     private static class UnsupportedAdditionalDataSpec implements AdditionalData {
