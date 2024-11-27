@@ -38,8 +38,8 @@ class LibraryPluginTest extends PluginTest {
             publishing {
                 repositories {
                     maven {
-                        name 'testRepo'
-                        url 'build/test-repo'
+                        name = 'testRepo'
+                        url = 'build/test-repo'
                     }
                 }
             }

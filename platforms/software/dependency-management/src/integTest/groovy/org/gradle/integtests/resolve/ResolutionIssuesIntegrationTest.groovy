@@ -455,7 +455,7 @@ class ResolutionIssuesIntegrationTest extends AbstractIntegrationSpec {
                 ${mavenCentralRepository()}
                 repositories {
                     google()
-                    maven { url 'https://jitpack.io' }
+                    maven { url = 'https://jitpack.io' }
                 }
             }
 
@@ -463,7 +463,7 @@ class ResolutionIssuesIntegrationTest extends AbstractIntegrationSpec {
                 ${mavenCentralRepository()}
                 repositories {
                     google()
-                    maven { url 'https://jitpack.io' }
+                    maven { url = 'https://jitpack.io' }
                 }
             }
         """
@@ -480,8 +480,8 @@ class ResolutionIssuesIntegrationTest extends AbstractIntegrationSpec {
             }
 
             android {
-                namespace 'org.zephyrsoft.trackworktime'
-                compileSdkVersion 33
+                namespace = 'org.zephyrsoft.trackworktime'
+                compileSdkVersion = 33
             }
 
             dependencies {
