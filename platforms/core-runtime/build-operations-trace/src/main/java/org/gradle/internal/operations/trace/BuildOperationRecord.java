@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.google.common.collect.Lists.transform;
 
@@ -71,8 +72,9 @@ public final class BuildOperationRecord {
         this.result = result == null ? null : new StrictMap<String, Object>(result);
         this.resultClassName = resultClassName;
         this.failure = failure;
-        this.progress = progress;
         this.children = children;
+
+        this.progress = new ArrayList<>(progress);
     }
 
     Map<String, ?> toSerializable() {
@@ -138,6 +140,12 @@ public final class BuildOperationRecord {
             }
         }
         return result;
+    }
+
+    public List<Progress> getMetadata() {
+        return progress.stream()
+            .filter(progress -> progress.detailsClassName != null && progress.detailsClassName.endsWith("Metadata"))
+            .collect(Collectors.toList());
     }
 
     @Override

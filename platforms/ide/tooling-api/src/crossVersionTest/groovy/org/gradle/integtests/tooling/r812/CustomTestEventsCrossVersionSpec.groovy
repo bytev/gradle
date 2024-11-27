@@ -16,7 +16,6 @@
 
 package org.gradle.integtests.tooling.r812
 
-
 import org.gradle.integtests.tooling.TestEventsFixture
 import org.gradle.integtests.tooling.fixture.ProgressEvents
 import org.gradle.integtests.tooling.fixture.TargetGradleVersion
@@ -205,5 +204,215 @@ class CustomTestEventsCrossVersionSpec extends ToolingApiSpecification implement
                 }
             }
         }
+    }
+
+    @ToolingApiVersion(">=8.12")
+    def "reports custom test events with metadata #value"() {
+        given:
+        buildFile("""
+            import java.time.Instant
+
+            abstract class CustomTestTask extends DefaultTask {
+                @Inject
+                abstract TestEventReporterFactory getTestEventReporterFactory()
+
+                @TaskAction
+                void runTests() {
+                    try (def reporter = getTestEventReporterFactory().createTestEventReporter("Custom test root")) {
+                        reporter.started(Instant.now())
+                        try (def myTest = reporter.reportTest("MyTestInternal", "My test!")) {
+                            myTest.started(Instant.now())
+                            myTest.metadata(Instant.now(), "mykey", ${ value instanceof String ? "'$value'" : value })
+                            myTest.succeeded(Instant.now())
+                        }
+                        reporter.succeeded(Instant.now())
+                    }
+                }
+            }
+
+            tasks.register("customTest", CustomTestTask)
+        """)
+
+        when:
+        withConnection {
+            ProjectConnection connection ->
+                connection.newBuild()
+                    .addProgressListener(events, OperationType.TASK, OperationType.TEST, OperationType.TEST_OUTPUT, OperationType.TEST_METADATA)
+                    .forTasks('customTest')
+                    .run()
+        }
+
+        then:
+        testEvents {
+            task(":customTest") {
+                composite("Custom test root") {
+                    test("MyTestInternal") {
+                        testDisplayName "My test!"
+                        metadata("mykey", value)
+                    }
+                }
+            }
+        }
+
+        where:
+        value << ["my value", 5, [1, 2, 3]]
+    }
+
+    @ToolingApiVersion(">=8.12")
+    def "reports custom test events with metadata reusing test start timestamp"() {
+        given:
+        buildFile("""
+            import java.time.Instant
+
+            abstract class CustomTestTask extends DefaultTask {
+                @Inject
+                abstract TestEventReporterFactory getTestEventReporterFactory()
+
+                @TaskAction
+                void runTests() {
+                    try (def reporter = getTestEventReporterFactory().createTestEventReporter("Custom test root")) {
+                        reporter.started(Instant.now())
+                        try (def myTest = reporter.reportTest("MyTestInternal", "My test!")) {
+                            def start = Instant.now()
+                            myTest.started(start)
+                            myTest.metadata(start, "mykey", "myvalue")
+                            myTest.succeeded(Instant.now())
+                        }
+                        reporter.succeeded(Instant.now())
+                    }
+                }
+            }
+
+            tasks.register("customTest", CustomTestTask)
+        """)
+
+        when:
+        withConnection {
+            ProjectConnection connection ->
+                connection.newBuild()
+                    .addProgressListener(events, OperationType.TASK, OperationType.TEST, OperationType.TEST_OUTPUT, OperationType.TEST_METADATA)
+                    .forTasks('customTest')
+                    .run()
+        }
+
+        then:
+        testEvents {
+            task(":customTest") {
+                composite("Custom test root") {
+                    test("MyTestInternal") {
+                        testDisplayName "My test!"
+                        metadata("mykey", "myvalue")
+                    }
+                }
+            }
+        }
+    }
+
+    @ToolingApiVersion(">=8.12")
+    def "reports custom test events with multiple metadata events and output"() {
+        given:
+        buildFile("""
+            import java.time.Instant
+
+            abstract class CustomTestTask extends DefaultTask {
+                @Inject
+                abstract TestEventReporterFactory getTestEventReporterFactory()
+
+                @TaskAction
+                void runTests() {
+                    try (def reporter = getTestEventReporterFactory().createTestEventReporter("Custom test root")) {
+                        reporter.started(Instant.now())
+                        try (def myTest = reporter.reportTest("MyTestInternal", "My test!")) {
+                            myTest.started(Instant.now())
+                            myTest.output(Instant.now(), TestOutputEvent.Destination.StdOut, "This is a test output on stdout")
+                            myTest.metadata(Instant.now(), "mykey1", "apple")
+                            myTest.metadata(Instant.now(), "mykey2", 10)
+                            myTest.output(Instant.now(), TestOutputEvent.Destination.StdOut, "More output on stdout")
+                            myTest.metadata(Instant.now(), "mykey3", ["banana", "cherry"])
+                            myTest.succeeded(Instant.now())
+                        }
+                        reporter.succeeded(Instant.now())
+                    }
+                }
+            }
+
+            tasks.register("customTest", CustomTestTask)
+        """)
+
+        when:
+        withConnection {
+            ProjectConnection connection ->
+                connection.newBuild()
+                    .addProgressListener(events, OperationType.TASK, OperationType.TEST, OperationType.TEST_OUTPUT, OperationType.TEST_METADATA)
+                    .forTasks('customTest')
+                    .run()
+        }
+
+        then:
+        testEvents {
+            task(":customTest") {
+                composite("Custom test root") {
+                    test("MyTestInternal") {
+                        testDisplayName "My test!"
+                        output("This is a test output on stdout")
+                        output("More output on stdout")
+                        metadata("mykey1", "apple")
+                        metadata("mykey2", 10)
+                        metadata("mykey3", ["banana", "cherry"])
+                    }
+                }
+            }
+        }
+    }
+
+    @ToolingApiVersion("<8.12")
+    def "reporting custom test events with metadata doesn't break older TAPI"() {
+        given:
+        buildFile("""
+            import java.time.Instant
+
+            abstract class CustomTestTask extends DefaultTask {
+                @Inject
+                abstract TestEventReporterFactory getTestEventReporterFactory()
+
+                @TaskAction
+                void runTests() {
+                    try (def reporter = getTestEventReporterFactory().createTestEventReporter("Custom test root")) {
+                        reporter.started(Instant.now())
+                        try (def myTest = reporter.reportTest("MyTestInternal", "My test!")) {
+                            myTest.started(Instant.now())
+                            myTest.metadata(Instant.now(), "mykey", ${ value instanceof String ? "'$value'" : value })
+                            myTest.succeeded(Instant.now())
+                        }
+                        reporter.succeeded(Instant.now())
+                    }
+                }
+            }
+
+            tasks.register("customTest", CustomTestTask)
+        """)
+
+        when:
+        withConnection {
+            ProjectConnection connection ->
+                connection.newBuild()
+                    .addProgressListener(events, OperationType.TASK, OperationType.TEST) // Older TAPI won't have TEST_METADATA available
+                    .forTasks('customTest')
+                    .run()
+        }
+
+        then:
+        testEvents {
+            task(":customTest") {
+                composite("Custom test root") {
+                    test("MyTestInternal") {
+                        testDisplayName "My test!"
+                    }
+                }
+            }
+        }
+
+        where:
+        value << ["my value", 5, [1, 2, 3]]
     }
 }
